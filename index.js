@@ -48,6 +48,7 @@ function detectFork(number, hash, forkhead, is_fork) {
         .then((block) => {
             if (block && block.hash != hash) {
                 if (!is_fork) {
+                    Messenger.send('Fork Detected', `Detected fork on block ${block.hash}`);
                     console.log('fork detected!!!');
                 }
                 return MongoDB.getBlock(hash)
@@ -64,6 +65,7 @@ function detectFork(number, hash, forkhead, is_fork) {
 function applyFork(number, forkhead) {
     return MongoDB.markOrphanFrom(number, forkhead)
         .then((forksize) => {
+            Messenger.send('Fork Resolved', `Forked ${forksize} blocks from ${number} to block ${forkhead}`);
             console.log('forked %i blocks from %i to block %s', forksize, number, forkhead);
             return forksize;
         });
@@ -72,7 +74,7 @@ function applyFork(number, forkhead) {
 MongoDB.init()
     .then(() => MongoDB.getLastBlock())
     .then((lastblock) => {
-        Messenger.send('Sync Starting', "Starting to sync from " + lastblock.number);
+        Messenger.send('Sync Starting', `Starting to sync from ${lastblock.number}`);
         return MongoDB.removeBlock((lastblock) ? lastblock.hash : 0)
             .then(() => syncBlocksFrom((lastblock) ? lastblock.number : 0));
     })
