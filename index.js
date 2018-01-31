@@ -1,9 +1,12 @@
-let Mvsd = require('./models/Mvsd.js');
-let MongoDB = require('./models/Mongo.js');
+let Mvsd = require('./models/Mvsd.js'),
+    Messenger = require('./models/Messenger'),
+    MongoDB = require('./models/Mongo.js');
 
-function syncBlocksFrom(start) {
+async function syncBlocksFrom(start) {
     return syncBlock(start)
-        .then(() => syncBlocksFrom(++start))
+        .then(async () => {
+            return await syncBlocksFrom(++start);
+        })
         .catch((error) => {
             if (error.message == 5101) {
                 console.info('nothing to do. retry');
@@ -20,30 +23,23 @@ function syncBlock(number) {
             let header = block.header.result;
             header.orphan = 0;
             return detectFork(number - 1, header.previous_block_hash, null, false)
-                .then((length) => {
-                    if (length)
-                        return syncBlock(number);
-                    else {
-                        return MongoDB.getBlock(header.hash)
-                            .then((b) => {
-                                if (b != null) {
-                                    console.log('block #%i %s exists', number, header.hash);
-                                    return null;
-                                } else {
-                                    return Promise.all(block.txs.transactions.map((tx) => {
-                                            tx.height = number;
-                                            tx.block = header.hash;
-                                            return MongoDB.addTx(tx).catch(() => {});
-                                        }))
-                                        .then(() => Promise.all(block.txs.transactions.map((tx) => {
-                                            return MongoDB.markOutputsAsSpent(tx);
-                                        })))
-                                        .then(() => MongoDB.addBlock(header))
-                                        .then(() => console.info('added block #%i %s', number, header.hash));
-                                }
-                            });
-                    }
-                });
+                .then((length) => (length) ? syncBlock(number) :
+                    MongoDB.getBlock(header.hash)
+                    .then((b) => {
+                        if (b != null) {
+                            console.log('block #%i %s exists', number, header.hash);
+                            return null;
+                        } else {
+                            return Promise.all(block.txs.transactions.map((tx) => {
+                                    tx.height = number;
+                                    tx.block = header.hash;
+                                    return MongoDB.addTx(tx).catch(() => {});
+                                }))
+                                .then(() => Promise.all(block.txs.transactions.map((tx) => MongoDB.markOutputsAsSpent(tx))))
+                                .then(() => MongoDB.addBlock(header))
+                                .then(() => console.info('added block #%i %s', number, header.hash));
+                        }
+                    }));
         });
 }
 
@@ -76,10 +72,12 @@ function applyFork(number, forkhead) {
 MongoDB.init()
     .then(() => MongoDB.getLastBlock())
     .then((lastblock) => {
+        Messenger.send('Sync Starting', "Starting to sync from " + lastblock.number);
         return MongoDB.removeBlock((lastblock) ? lastblock.hash : 0)
             .then(() => syncBlocksFrom((lastblock) ? lastblock.number : 0));
     })
     .catch((error) => {
         console.error(error);
+        Messenger.send('Sync Error', error.message);
         return MongoDB.disconnect();
     });
