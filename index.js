@@ -36,6 +36,7 @@ function syncBlock(number) {
                                     return MongoDB.addTx(tx).catch(() => {});
                                 }))
                                 .then(() => Promise.all(block.txs.transactions.map((tx) => MongoDB.markOutputsAsSpent(tx))))
+                                .then(() => Promise.all(block.txs.transactions.map((tx) => MongoDB.includeInputsAddresses(tx))))
                                 .then(() => MongoDB.addBlock(header))
                                 .then(() => console.info('added block #%i %s', number, header.hash));
                         }

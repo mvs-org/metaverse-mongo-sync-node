@@ -14,6 +14,7 @@ let service = {
     getBlock: getBlock,
     markOrphanFrom: markOrphanFrom,
     markOutputsAsSpent: markOutputsAsSpent,
+    includeInputsAddresses: includeInputsAddresses,
     getBlockByNumber: getBlockByNumber
 };
 
@@ -101,6 +102,26 @@ function markOutputsAsSpent(tx){
                 return database.collection('tx').update({
                     hash: input_tx.hash
                 }, input_tx).then(() => console.info('maked output %s %i as spent', input_tx.hash, index));
+            });
+        else return null; //Coinbase input
+    }));
+}
+
+function includeInputsAddresses(tx){
+    return Promise.all(tx.inputs.map((input, index) => {
+        if (input.previous_output.index < 4294967295)
+            return database.collection('tx').find({
+                hash: input.previous_output.hash
+            }).toArray().then((input_txs) => {
+                if(!input_txs.length){
+                    console.error("couldnt find %s %s for %s",input.previous_output.hash, input.previous_output.index, tx.hash);
+                    process.exit();
+                }
+                let input_tx = input_txs[0];
+                input.address = input_tx.address;
+                return database.collection('tx').update({
+                    hash: input.hash
+                }, input).then(() => console.info('added input address from %s %i', input_tx.hash, index));
             });
         else return null; //Coinbase input
     }));
