@@ -75,7 +75,10 @@ function applyFork(number, forkhead) {
 MongoDB.init()
     .then(() => MongoDB.getLastBlock())
     .then((lastblock) => {
-        Messenger.send('Sync Starting', `Starting to sync from ${lastblock.number}`);
+        if(lastblock)
+            Messenger.send('Sync Starting', `Starting to sync from ${lastblock.number}`);
+       else 
+            Messenger.send('Sync Starting', `Starting to sync from 0`);
         return MongoDB.removeBlock((lastblock) ? lastblock.hash : 0)
             .then(() => syncBlocksFrom((lastblock) ? lastblock.number : 0));
     })
