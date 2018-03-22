@@ -3,18 +3,19 @@ let Mvsd = require('./models/Mvsd.js'),
     MongoDB = require('./models/Mongo.js');
 
 async function syncBlocksFrom(start) {
-    return syncBlock(start)
-        .then(async () => {
-            return await syncBlocksFrom(++start);
-        })
-        .catch((error) => {
-            if (error.message == 5101) {
-                console.info('nothing to do. retry');
-                setTimeout(() => syncBlocksFrom(start), 5000);
-            } else {
-                throw Error(error.message);
-            }
-        });
+    try {
+        while(true){
+            await syncBlock(start);
+            start++;
+        }
+    } catch (error) {
+        if (error.message == 5101) {
+            console.info('nothing to do. retry');
+            setTimeout(() => syncBlocksFrom(start), 5000);
+        } else {
+            throw Error(error.message);
+        }
+    }
 }
 
 function syncBlock(number) {
