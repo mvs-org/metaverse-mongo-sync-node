@@ -3,17 +3,17 @@ let Mvsd = require('./models/Mvsd.js'),
     MongoDB = require('./models/Mongo.js');
 
 async function syncBlocksFrom(start) {
-    try {
-        while(true){
+    while (true) {
+        try {
             await syncBlock(start);
             start++;
-        }
-    } catch (error) {
-        if (error.message == 5101) {
-            console.info('nothing to do. retry');
-            setTimeout(() => syncBlocksFrom(start), 5000);
-        } else {
-            throw Error(error.message);
+        } catch (error) {
+            if (error.message == 5101) {
+                console.info('nothing to do. retry');
+                await wait(5000);
+            } else {
+                throw Error(error.message);
+            }
         }
     }
 }
@@ -26,14 +26,14 @@ function syncBlock(number) {
             return detectFork(number - 1, header.previous_block_hash, null, false)
                 .then((length) => (length) ? syncBlock(number) :
                     MongoDB.getBlock(header.hash)
-                      .then((b) => {
-                          header.txs=[];
+                    .then((b) => {
+                        header.txs = [];
                         if (b != null) {
                             console.log('block #%i %s exists', number, header.hash);
                             return null;
                         } else {
                             return Promise.all(block.txs.transactions.map((tx) => {
-                                header.txs.push(tx.hash);
+                                    header.txs.push(tx.hash);
                                     tx.height = number;
                                     tx.block = header.hash;
                                     return MongoDB.addTx(tx).catch(() => {});
@@ -71,6 +71,12 @@ function applyFork(number, forkhead) {
             console.log('forked %i blocks from %i to block %s', forksize, number, forkhead);
             return forksize;
         });
+}
+
+function wait(ms) {
+    return new Promise(resolve => {
+        setTimeout(() => resolve(), ms);
+    });
 }
 
 MongoDB.init()
