@@ -26,17 +26,18 @@ function syncBlock(number) {
             return detectFork(number - 1, header.previous_block_hash, null, false)
                 .then((length) => (length) ? syncBlock(number) :
                     MongoDB.getBlock(header.hash)
-                    .then((b) => {
+                      .then((b) => {
+                          header.txs=[];
                         if (b != null) {
                             console.log('block #%i %s exists', number, header.hash);
                             return null;
                         } else {
                             return Promise.all(block.txs.transactions.map((tx) => {
+                                header.txs.push(tx.hash);
                                     tx.height = number;
                                     tx.block = header.hash;
                                     return MongoDB.addTx(tx).catch(() => {});
                                 }))
-                                // .then(() => Promise.all(block.txs.transactions.map((tx) => MongoDB.markOutputsAsSpent(tx))))
                                 .then(() => MongoDB.addBlock(header))
                                 .then(() => console.info('added block #%i %s', number, header.hash));
                         }
