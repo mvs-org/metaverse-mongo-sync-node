@@ -49,7 +49,7 @@ function init() {
         );
 }
 
-function removeBlock(hash){
+function removeBlock(hash) {
     return new Promise((resolve, reject) => {
         database.collection('block').remove({
             hash: hash
@@ -88,14 +88,14 @@ function addTx(tx) {
     return database.collection('tx').insertOne(tx);
 }
 
-function markOutputsAsSpent(tx){
+function markOutputsAsSpent(tx) {
     return Promise.all(tx.inputs.map((input, index) => {
         if (input.previous_output.index < 4294967295)
             return database.collection('tx').find({
                 hash: input.previous_output.hash
             }).toArray().then((input_txs) => {
-                if(!input_txs.length){
-                    console.error("couldnt find %s %s for %s",input.previous_output.hash, input.previous_output.index, tx.hash);
+                if (!input_txs.length) {
+                    console.error("couldnt find %s %s for %s", input.previous_output.hash, input.previous_output.index, tx.hash);
                     process.exit();
                 }
                 let input_tx = input_txs[0];
@@ -136,23 +136,57 @@ function getBlockByNumber(number) {
     });
 }
 
-function markOrphanFrom(number, forkhead){
-    //TODO Mark outpus of forked txs as spent
+function markOrphanFrom(number, forkhead) {
+    return Promise.all([
+        markOrphanBlocksFrom(number, forkhead),
+        markOrphanTxsFrom(number)
+    ]);
+}
+
+function markOrphanBlocksFrom(number, forkhead) {
     return new Promise((resolve, reject) => {
         database.collection('block').updateMany({
-            number: { $gt: number-1},
+            number: {
+                $gt: number
+            },
             orphan: 0
-        },{$set: {orphan: forkhead}}, (err, result) => {
+        }, {
+            $set: {
+                orphan: forkhead
+            }
+        }, (err, result) => {
             if (err) throw err.message;
             else
-                setTimeout(()=>resolve(result.result.nModified),10000);
+                setTimeout(() => resolve(result.result.nModified), 10000);
+        });
+    });
+}
+
+function markOrphanTxsFrom(number) {
+    return new Promise((resolve, reject) => {
+        database.collection('tx').updateMany({
+            height: {
+                $gt: number
+            },
+            orphan: 0
+        }, {
+            $set: {
+                orphan: 1
+            }
+        }, (err, result) => {
+            if (err) throw err.message;
+            else
+                setTimeout(() => resolve(result.result.nModified), 10000);
         });
     });
 }
 
 function connect(url, name) {
     return new Promise((resolve, reject) => {
-        MongoClient.connect(url, {w: 1, j: false}, (err, con) => {
+        MongoClient.connect(url, {
+            w: 1,
+            j: false
+        }, (err, con) => {
             if (err) throw err;
             else {
                 client = con;
