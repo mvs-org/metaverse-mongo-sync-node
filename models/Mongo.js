@@ -33,9 +33,15 @@ function init() {
                 }),
                 database.createCollection('tx'),
                 database.collection('tx').createIndex({
-                    hash: 1
+                    hash: 1,
+                    block: 1
                 }, {
                     unique: true
+                }),
+                database.collection('tx').createIndex({
+                    hash: 1,
+                    block: 1,
+                    orphan: 1
                 }),
                 database.collection('tx').createIndex({
                     height: -1
