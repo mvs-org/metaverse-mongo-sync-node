@@ -40,7 +40,6 @@ function init() {
                 }),
                 database.collection('tx').createIndex({
                     hash: 1,
-                    block: 1,
                     orphan: 1
                 }),
                 database.collection('tx').createIndex({
