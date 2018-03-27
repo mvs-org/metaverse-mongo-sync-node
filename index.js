@@ -35,7 +35,6 @@ function syncBlock(number) {
                             return Promise.all(block.txs.transactions.map((tx) => {
                                     header.txs.push(tx.hash);
                                     tx.height = number;
-                                    tx.blockhash = header.hash;
                                     tx.orphan = 0;
                                     tx.block = header.hash;
                                     return MongoDB.addTx(tx).catch(() => {});
