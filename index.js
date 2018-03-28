@@ -81,11 +81,13 @@ function organizeTxPreviousOutputs(input) {
                 input.assets = "ETP";
                 input.decimals = 8;
                 input.value = previousOutput.value;
+                input.address = previousOutput.address;
                 return input;
             } else if (previousOutput.attachment.type == "asset-issue") {
                 input.value = previousOutput.attachment.quantity;
                 input.asset = previousOutput.attachment.symbol.toUpperCase();
                 input.decimals = previousOutput.attachment.decimal_number;
+                input.address = previousOutput.address;
                 return input;
             } else {
                 return MongoDB.getAsset(previousOutput.attachment.symbol)
@@ -93,6 +95,7 @@ function organizeTxPreviousOutputs(input) {
                         input.value = previousOutput.attachment.quantity;
                         input.asset = previousOutput.attachment.symbol.toUpperCase();
                         input.decimals = asset.decimal_number;
+                        input.address = previousOutput.address;
                         return input;
                     });
             }
@@ -104,7 +107,9 @@ function organizeTxInputs(inputs) {
         if (input.previous_output.index < 4294967295) {
             return organizeTxPreviousOutputs(input);
         } else {
-            //Coinbase input -> nothing to organize
+            input.assets = "ETP";
+            input.decimals = 8;
+            input.address = "";
             return input;
         }
     }));
