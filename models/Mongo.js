@@ -9,12 +9,14 @@ let service = {
     disconnect: disconnect,
     addTx: addTx,
     addBlock: addBlock,
+    addAsset: addAsset,
+    getAsset: getAsset,
     removeBlock: removeBlock,
     getLastBlock: getLastBlock,
     getBlock: getBlock,
+    getTx: getTx,
     markOrphanFrom: markOrphanFrom,
     markOutputsAsSpent: markOutputsAsSpent,
-    includeInputsAddresses: includeInputsAddresses,
     getBlockByNumber: getBlockByNumber
 };
 
@@ -24,7 +26,8 @@ function init() {
             Promise.all([
                 database.createCollection('block'),
                 database.collection('block').createIndex({
-                    hash: 1
+                    hash: 1,
+                    block: 1
                 }, {
                     unique: true
                 }),
@@ -39,13 +42,18 @@ function init() {
                     unique: true
                 }),
                 database.collection('tx').createIndex({
+                    hash: 1,
+                    orphan: 1
+                }),
+                database.collection('tx').createIndex({
                     height: -1
                 }),
+                database.createCollection('assets'),
             ])
         );
 }
 
-function removeBlock(hash){
+function removeBlock(hash) {
     return new Promise((resolve, reject) => {
         database.collection('block').remove({
             hash: hash
@@ -84,13 +92,17 @@ function addTx(tx) {
     return database.collection('tx').insertOne(tx);
 }
 
-function markOutputsAsSpent(tx){
+function addAsset(asset) {
+    return database.collection('assets').insertOne(asset);
+}
+
+function markOutputsAsSpent(tx) {
     return Promise.all(tx.inputs.map((input, index) => {
         if (input.previous_output.index < 4294967295)
             return database.collection('tx').find({
                 hash: input.previous_output.hash
             }).toArray().then((input_txs) => {
-                if(!input_txs.length){
+                if (!input_txs.length) {
                     console.error("couldnt find %s %s for %s",input.previous_output.hash, input.previous_output.index, tx.hash);
                     process.exit();
                 }
@@ -101,27 +113,7 @@ function markOutputsAsSpent(tx){
                 };
                 return database.collection('tx').update({
                     hash: input_tx.hash
-                }, input_tx).then(() => console.info('maked output %s %i as spent', input_tx.hash, index));
-            });
-        else return null; //Coinbase input
-    }));
-}
-
-function includeInputsAddresses(tx){
-    return Promise.all(tx.inputs.map((input, index) => {
-        if (input.previous_output.index < 4294967295)
-            return database.collection('tx').find({
-                hash: input.previous_output.hash
-            }).toArray().then((input_txs) => {
-                if(!input_txs.length){
-                    console.error("couldnt find %s %s for %s",input.previous_output.hash, input.previous_output.index, tx.hash);
-                    process.exit();
-                }
-                let input_tx = input_txs[0];
-                input.address = input_tx.address;
-                return database.collection('tx').update({
-                    hash: input.hash
-                }, input).then(() => console.info('added input address from %s %i', input_tx.hash, index));
+                }, input_tx).then(() => console.info('marked output %s %i as spent', input_tx.hash, index));
             });
         else return null; //Coinbase input
     }));
@@ -131,6 +123,19 @@ function getBlock(hash) {
     return new Promise((resolve, reject) => {
         database.collection('block').findOne({
             hash: hash
+        }, (err, block) => {
+            if (err) throw err.message;
+            else
+                resolve(block);
+        });
+    });
+}
+
+function getTx(hash) {
+    return new Promise((resolve, reject) => {
+        database.collection('tx').findOne({
+            hash: hash,
+            orphan: 0
         }, (err, block) => {
             if (err) throw err.message;
             else
@@ -152,23 +157,70 @@ function getBlockByNumber(number) {
     });
 }
 
-function markOrphanFrom(number, forkhead){
-    //TODO Mark outpus of forked txs as spent
+function markOrphanFrom(number, forkhead) {
+    return Promise.all([
+        markOrphanBlocksFrom(number, forkhead),
+        markOrphanTxsFrom(number)
+    ]);
+}
+
+function markOrphanBlocksFrom(number, forkhead) {
     return new Promise((resolve, reject) => {
         database.collection('block').updateMany({
-            number: { $gt: number-1},
+            number: {
+                $gt: number
+            },
             orphan: 0
-        },{$set: {orphan: forkhead}}, (err, result) => {
+        }, {
+            $set: {
+                orphan: forkhead
+            }
+        }, (err, result) => {
             if (err) throw err.message;
             else
-                setTimeout(()=>resolve(result.result.nModified),10000);
+                setTimeout(() => resolve(result.result.nModified), 10000);
+        });
+    });
+}
+
+function markOrphanTxsFrom(number) {
+    return new Promise((resolve, reject) => {
+        database.collection('tx').updateMany({
+            height: {
+                $gt: number
+            },
+            orphan: 0
+        }, {
+            $set: {
+                orphan: 1
+            }
+        }, (err, result) => {
+            if (err) throw err.message;
+            else
+                setTimeout(() => resolve(result.result.nModified), 10000);
+        });
+        //TODO Add the same logic for transaction
+    });
+}
+
+function getAsset(asset) {
+    return new Promise((resolve, reject) => {
+        database.collection('assets').findOne({
+            symbol: asset
+        }, (err, symbol) => {
+            if (err) throw err.message;
+            else
+                resolve(asset);
         });
     });
 }
 
 function connect(url, name) {
     return new Promise((resolve, reject) => {
-        MongoClient.connect(url, {w: 1, j: false}, (err, con) => {
+        MongoClient.connect(url, {
+          w: 1,
+          j: false
+        }, (err, con) => {
             if (err) throw err;
             else {
                 client = con;

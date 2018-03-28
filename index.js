@@ -37,6 +37,14 @@ function syncBlock(number) {
                                     tx.height = number;
                                     tx.orphan = 0;
                                     tx.block = header.hash;
+                                    tx.outputs.forEach(function(output) {
+                                        if(output.attachment.type == "asset-issue"){
+                                            delete output.attachment.type
+                                            output.attachment.hash = tx.hash
+                                            output.attachment.height = tx.height
+                                            newAsset(output.attachment)
+                                        }
+                                    });
                                     return organizeTx(tx)
                                         .then((updatedTx) => MongoDB.addTx(updatedTx))
                                         .catch(() => {});
@@ -50,60 +58,32 @@ function syncBlock(number) {
 
 function organizeTx(tx) {
     tx.outputs.forEach(function(output) {
-        if (output.attachment.type == "etp") {
-          output.assets = "ETP"
-          output.decimals = 8
-        } else if (output.attachment.type == "asset-issue") {
-          output.assets = output.attachment.symbol.toUpperCase()
-          delete output.attachment.type
-          output.attachment.hash = tx.hash
-          output.attachment.height = tx.height
-          newAsset(output.attachment)
-      } else {
-          MongoDB.getAsset(output.attachment.symbol)
+        if (output.attachment.type == 'etp') {
+          output.attachment.decimal = 8
+        } else {
+          MongoDB.getAsset(output.attachment.type)
               .then((asset) => {
-                  output.assets = output.attachment.symbol.toUpperCase()
-                  output.decimals = asset.decimal_number
+                  output.attachment.decimal = asset.decimal_number
               })
-              .catch(() => {console.log("Can't get the decimal number of asset %s, transaction %s", output.attachment.symbol, tx.hash)})
         }})
     tx.inputs.forEach(function(input) {
         if(input.previous_output.index < 4294967295) {
             Mvsd.getTx(input.previous_output.hash, true)
                 .then((previousTx) => {
-                    previousTx.outputs.forEach(function(previousOutput) {
-                        if(previousOutput.index == input.previous_output.index) {
-                            if (previousOutput.attachment.type == "etp") {
-                              input.assets = "ETP"
-                              input.decimals = 8
-                              input.value = previousOutput.value
-                            } else if (output.attachment.type == "asset-issue") {
-                                input.value = previousOutput.attachment.quantity
-                                input.asset = previousOutput.attachment.symbol.toUpperCase()
-                                input.decimals = previousOutput.attachment.decimal_number
-                            } else {
-                                MongoDB.getAsset(output.attachment.symbol)
-                                    .then((asset) => {
-                                      input.value = previousOutput.attachment.quantity
-                                      input.asset = previousOutput.attachment.symbol.toUpperCase()
-                                      input.decimals = asset.decimal_number
-                                    })
-                                    .catch(() => {console.log("Can't get the decimal number of asset %s, transaction %s", output.attachment.symbol, previousTx.hash)})
-                            }
-                        }
-                    })
-                })
-                .catch(() => {console.log("Can't get the previous transaction %s", input.previous_output.hash)})
+                    previousTx.output.forEach(function(previousOutput) {
+                        if(previousOutput.index == input.previous_output.index)
+                            input.value = previousOutput.value
+                    });
+            })
         }
     })
-    return Mvsd.getTx(tx.hash, false)
+    return MongoDB.getTx(tx.hash)
         .then((raw_transaction) => {
             tx.rawtx = raw_transaction.transaction.raw;
         })
         .then(() => {
             return tx;
         })
-        .catch(() => {console.log("Error getting raw tx of %s", tx.hash)})
 }
 
 function newAsset(output) {
