@@ -37,7 +37,8 @@ function init() {
                 }),
                 database.createCollection('tx'),
                 database.collection('tx').createIndex({
-                    hash: 1
+                    hash: 1,
+                    block: 1
                 }, {
                     unique: true
                 }),
@@ -103,7 +104,7 @@ function markOutputsAsSpent(tx) {
                 hash: input.previous_output.hash
             }).toArray().then((input_txs) => {
                 if (!input_txs.length) {
-                    console.error("couldnt find %s %s for %s",input.previous_output.hash, input.previous_output.index, tx.hash);
+                    console.error("couldnt find %s %s for %s", input.previous_output.hash, input.previous_output.index, tx.hash);
                     process.exit();
                 }
                 let input_tx = input_txs[0];
