@@ -40,7 +40,7 @@ function syncBlock(number) {
                                     tx.block = header.hash;
                                     return organizeTx(tx)
                                         .then((updatedTx) => MongoDB.addTx(updatedTx))
-                                        .catch(() => {});
+                                    .catch((e) => {console.error(e)});
                                 }))
                                 .then(() => MongoDB.addBlock(header))
                                 .then(() => console.info('added block #%i %s', number, header.hash));
@@ -49,7 +49,7 @@ function syncBlock(number) {
         });
 }
 
-function organizeTxOutputs(outputs) {
+function organizeTxOutputs(tx, outputs) {
     return Promise.all(outputs.map((output) => {
         if (output.attachment.type == "etp") {
             output.assets = "ETP";
@@ -112,7 +112,7 @@ function organizeTxInputs(inputs) {
 
 function organizeTx(tx) {
     return Promise.all([
-            organizeTxOutputs(tx.outputs),
+            organizeTxOutputs(tx, tx.outputs),
             organizeTxInputs(tx.inputs),
             Mvsd.getTx(tx.hash, false).then((res) => res.transaction.raw)
         ])
@@ -120,6 +120,7 @@ function organizeTx(tx) {
             tx.outputs = results[0];
             tx.inputs = results[1];
             tx.rawtx = results[2];
+            return tx;
         });
 }
 
