@@ -12,6 +12,7 @@ async function syncBlocksFrom(start) {
                 console.info('nothing to do. retry');
                 await wait(5000);
             } else {
+                console.error(error)
                 throw Error(error.message);
             }
         }
@@ -48,66 +49,82 @@ function syncBlock(number) {
         });
 }
 
-function organizeTx(tx) {
-    tx.outputs.forEach(function(output) {
+function organizeTxOutputs(outputs) {
+    return Promise.all(outputs.map((output) => {
         if (output.attachment.type == "etp") {
-          output.assets = "ETP"
-          output.decimals = 8
+            output.assets = "ETP";
+            output.decimals = 8;
+            return output;
         } else if (output.attachment.type == "asset-issue") {
-          output.assets = output.attachment.symbol.toUpperCase()
-          delete output.attachment.type
-          output.attachment.hash = tx.hash
-          output.attachment.height = tx.height
-          newAsset(output.attachment)
-      } else {
-          MongoDB.getAsset(output.attachment.symbol)
-              .then((asset) => {
-                  output.assets = output.attachment.symbol.toUpperCase()
-                  output.decimals = asset.decimal_number
-              })
-              .catch(() => {console.log("Can't get the decimal number of asset %s, transaction %s", output.attachment.symbol, tx.hash)})
-        }})
-    tx.inputs.forEach(function(input) {
-        if(input.previous_output.index < 4294967295) {
-            Mvsd.getTx(input.previous_output.hash, true)
-                .then((previousTx) => {
-                    previousTx.outputs.forEach(function(previousOutput) {
-                        if(previousOutput.index == input.previous_output.index) {
-                            if (previousOutput.attachment.type == "etp") {
-                              input.assets = "ETP"
-                              input.decimals = 8
-                              input.value = previousOutput.value
-                            } else if (output.attachment.type == "asset-issue") {
-                                input.value = previousOutput.attachment.quantity
-                                input.asset = previousOutput.attachment.symbol.toUpperCase()
-                                input.decimals = previousOutput.attachment.decimal_number
-                            } else {
-                                MongoDB.getAsset(output.attachment.symbol)
-                                    .then((asset) => {
-                                      input.value = previousOutput.attachment.quantity
-                                      input.asset = previousOutput.attachment.symbol.toUpperCase()
-                                      input.decimals = asset.decimal_number
-                                    })
-                                    .catch(() => {console.log("Can't get the decimal number of asset %s, transaction %s", output.attachment.symbol, previousTx.hash)})
-                            }
-                        }
-                    })
-                })
-                .catch(() => {console.log("Can't get the previous transaction %s", input.previous_output.hash)})
+            output.assets = output.attachment.symbol.toUpperCase();
+            delete output.attachment.type;
+            output.attachment.hash = tx.hash;
+            output.attachment.height = tx.height;
+            newAsset(output.attachment);
+            return output;
+        } else {
+            return MongoDB.getAsset(output.attachment.symbol)
+                .then((asset) => {
+                    output.assets = output.attachment.symbol.toUpperCase();
+                    output.decimals = asset.decimal_number;
+                    return output;
+                });
         }
-    })
-    return Mvsd.getTx(tx.hash, false)
-        .then((raw_transaction) => {
-            tx.rawtx = raw_transaction.transaction.raw;
-        })
-        .then(() => {
-            return tx;
-        })
-        .catch(() => {console.log("Error getting raw tx of %s", tx.hash)})
+    }));
+}
+
+function organizeTxPreviousOutputs(input) {
+    return Mvsd.getTx(input.previous_output.hash, true)
+        .then((previousTx) => {
+            var previousOutput = previousTx.outputs[input.previous_output.index];
+            if (previousOutput.attachment.type == "etp") {
+                input.assets = "ETP";
+                input.decimals = 8;
+                input.value = previousOutput.value;
+                return input;
+            } else if (previousOutput.attachment.type == "asset-issue") {
+                input.value = previousOutput.attachment.quantity;
+                input.asset = previousOutput.attachment.symbol.toUpperCase();
+                input.decimals = previousOutput.attachment.decimal_number;
+                return input;
+            } else {
+                return MongoDB.getAsset(previousOutput.attachment.symbol)
+                    .then((asset) => {
+                        input.value = previousOutput.attachment.quantity;
+                        input.asset = previousOutput.attachment.symbol.toUpperCase();
+                        input.decimals = asset.decimal_number;
+                        return input;
+                    });
+            }
+        });
+}
+
+function organizeTxInputs(inputs) {
+    return Promise.all(inputs.map((input) => {
+        if (input.previous_output.index < 4294967295) {
+            return organizeTxPreviousOutputs(input);
+        } else {
+            //Coinbase input -> nothing to organize
+            return input;
+        }
+    }));
+}
+
+function organizeTx(tx) {
+    return Promise.all([
+            organizeTxOutputs(tx.outputs),
+            organizeTxInputs(tx.inputs),
+            Mvsd.getTx(tx.hash, false).then((res) => res.transaction.raw)
+        ])
+        .then((results) => {
+            tx.outputs = results[0];
+            tx.inputs = results[1];
+            tx.rawtx = results[2];
+        });
 }
 
 function newAsset(output) {
-    MongoDB.addAsset(output)
+    return MongoDB.addAsset(output);
 }
 
 function detectFork(number, hash, forkhead, is_fork) {
@@ -145,7 +162,7 @@ function wait(ms) {
 MongoDB.init()
     .then(() => MongoDB.getLastBlock())
     .then((lastblock) => {
-        if(lastblock)
+        if (lastblock)
             Messenger.send('Sync Starting', `Starting to sync from ${lastblock.number}`);
         else
             Messenger.send('Sync Starting', `Starting to sync from 0`);
