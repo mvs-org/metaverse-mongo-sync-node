@@ -54,6 +54,7 @@ function organizeTxOutputs(tx, outputs) {
         if (output.attachment.type == "etp") {
             output.asset = "ETP";
             output.decimals = 8;
+            delete output.attachment;
             return output;
         } else if (output.attachment.type == "asset-issue") {
             output.value = output.attachment.quantity;
@@ -66,10 +67,10 @@ function organizeTxOutputs(tx, outputs) {
         } else {
             return MongoDB.getAsset(output.attachment.symbol)
                 .then((asset) => {
-                    console.log(asset)
                     output.asset = output.attachment.symbol.toUpperCase();
                     output.value = output.attachment.quantity;
                     output.decimals = asset.decimal_number;
+                    delete output.attachment;
                     return output;
                 });
         }
