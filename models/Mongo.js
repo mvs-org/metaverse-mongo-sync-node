@@ -43,8 +43,7 @@ function init() {
                     unique: true
                 }),
                 database.collection('tx').createIndex({
-                    hash: 1,
-                    orphan: 1
+                    hash: 1
                 }),
                 database.collection('tx').createIndex({
                     height: -1
@@ -135,8 +134,7 @@ function getBlock(hash) {
 function getTx(hash) {
     return new Promise((resolve, reject) => {
         database.collection('tx').findOne({
-            hash: hash,
-            orphan: 0
+            hash: hash
         }, (err, block) => {
             if (err) throw err.message;
             else

@@ -120,8 +120,21 @@ function organizeTxOutputs(tx, outputs) {
 }
 
 function organizeTxPreviousOutputs(input) {
-    return MongoDB.getTx(input.previous_output.hash, true)
+    return MongoDB.getTx(input.previous_output.hash)
+        .then((previousTx)=>{
+            if(previousTx)
+                return previousTx;
+            else{
+                winston.info('transaction load', {
+                    topic: "transaction",
+                    message: "alternative load from mvsd",
+                    hash: input.previous_output.hash
+                });
+                return Mvsd.getTx(input.previous_output.hash, true);
+            }
+        })
         .then((previousTx) => {
+
             var previousOutput = previousTx.outputs[input.previous_output.index];
             input.attachment = {};
             input.value = previousOutput.value;
