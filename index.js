@@ -52,27 +52,23 @@ function syncBlock(number) {
 function organizeTxOutputs(tx, outputs) {
     return Promise.all(outputs.map((output) => {
         if (output.attachment.type == "etp") {
-            output.asset = "ETP";
-            output.decimals = 8;
-            delete output.attachment;
+            output.attachment.symbol = "ETP";
+            output.attachment.decimals = 8;
             return output;
         } else if (output.attachment.type == "asset-issue") {
-            output.value = output.attachment.quantity;
-            output.asset = output.attachment.symbol.toUpperCase();
             delete output.attachment.type;
             output.attachment.hash = tx.hash;
             output.attachment.height = tx.height;
             newAsset(output.attachment);
             return output;
-        } else {
+        } else if (output.attachment.type == "asset-transfer") {
             return MongoDB.getAsset(output.attachment.symbol)
                 .then((asset) => {
-                    output.asset = output.attachment.symbol.toUpperCase();
-                    output.value = output.attachment.quantity;
-                    output.decimals = asset.decimal_number;
-                    delete output.attachment;
+                    output.attachment.decimals = asset.decimal_number;
                     return output;
                 });
+        } else {
+          //not handled type of TX
         }
     }));
 }
@@ -81,27 +77,28 @@ function organizeTxPreviousOutputs(input) {
     return Mvsd.getTx(input.previous_output.hash, true)
         .then((previousTx) => {
             var previousOutput = previousTx.outputs[input.previous_output.index];
+            input.attachment = {};
+            input.value = previousOutput.value;
+            input.address = previousOutput.address;
             if (previousOutput.attachment.type == "etp") {
-                input.asset = "ETP";
-                input.decimals = 8;
-                input.value = previousOutput.value;
-                input.address = previousOutput.address;
+                input.attachment.symbol = "ETP";
+                input.attachment.decimal_number = 8;
                 return input;
             } else if (previousOutput.attachment.type == "asset-issue") {
-                input.value = previousOutput.attachment.quantity;
-                input.asset = previousOutput.attachment.symbol.toUpperCase();
-                input.decimals = previousOutput.attachment.decimal_number;
-                input.address = previousOutput.address;
+                input.attachment.quantity = previousOutput.attachment.quantity;
+                input.attachment.symbol = previousOutput.attachment.symbol;
+                input.attachment.decimal_number = previousOutput.attachment.decimal_number;
                 return input;
-            } else {
+            } else if (previousOutput.attachment.type == "asset-transfer") {
                 return MongoDB.getAsset(previousOutput.attachment.symbol)
                     .then((asset) => {
-                        input.value = previousOutput.attachment.quantity;
-                        input.asset = previousOutput.attachment.symbol.toUpperCase();
-                        input.decimals = asset.decimal_number;
-                        input.address = previousOutput.address;
+                        input.attachment.quantity = previousOutput.attachment.quantity;
+                        input.attachment.symbol = previousOutput.attachment.symbol;
+                        input.attachment.decimal_number = asset.decimal_number;
                         return input;
                     });
+            } else {
+              //not handled type of TX
             }
         });
 }
@@ -111,8 +108,9 @@ function organizeTxInputs(inputs) {
         if (input.previous_output.index < 4294967295) {
             return organizeTxPreviousOutputs(input);
         } else {
-            input.asset = "ETP";
-            input.decimals = 8;
+            input.attachment = {};
+            input.attachment.symbol = "ETP";
+            input.attachment.decimals = 8;
             input.address = "";
             input.value = 0;
             return input;
