@@ -120,7 +120,7 @@ function organizeTxOutputs(tx, outputs) {
 }
 
 function organizeTxPreviousOutputs(input) {
-    return Mvsd.getTx(input.previous_output.hash, true)
+    return MongoDB.getTx(input.previous_output.hash, true)
         .then((previousTx) => {
             var previousOutput = previousTx.outputs[input.previous_output.index];
             input.attachment = {};
