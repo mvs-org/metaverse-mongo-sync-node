@@ -2,6 +2,24 @@ let Mvsd = require('./models/Mvsd.js'),
     Messenger = require('./models/Messenger'),
     MongoDB = require('./models/Mongo.js');
 
+//Setup logging
+let winston = require('winston'),
+    log_config = require('./config/logging.js');
+if (log_config.logstash.enabled) {
+    winston.info('enable logging', log_config.logstash);
+    require('winston-logstash');
+    winston.add(winston.transports.Logstash, {
+        port: log_config.logstash.port,
+        node_name: log_config.logstash.node_name,
+        host: log_config.logstash.host
+    });
+}
+
+winston.info('start', {
+    test: 1,
+    info: "hallo"
+});
+
 async function syncBlocksFrom(start) {
     while (true) {
         try {
@@ -12,7 +30,13 @@ async function syncBlocksFrom(start) {
                 console.info('nothing to do. retry');
                 await wait(5000);
             } else {
-                console.error(error)
+                console.error(error);
+                winston.error('sync block error', {
+                    topic: "block",
+                    message: error.message,
+                    details: error,
+                    height: start
+                });
                 throw Error(error.message);
             }
         }
@@ -30,7 +54,12 @@ function syncBlock(number) {
                     .then((b) => {
                         header.txs = [];
                         if (b != null) {
-                            console.log('block #%i %s exists', number, header.hash);
+                            winston.info('block exists', {
+                                topic: "block",
+                                message: "exists",
+                                height: number,
+                                hash: header.hash
+                            });
                             return null;
                         } else {
                             return Promise.all(block.txs.transactions.map((tx) => {
@@ -40,10 +69,26 @@ function syncBlock(number) {
                                     tx.block = header.hash;
                                     return organizeTx(tx)
                                         .then((updatedTx) => MongoDB.addTx(updatedTx))
-                                    .catch((e) => {console.error(e)});
+                                        .catch((e) => {
+                                            winston.error('add transaction', {
+                                                topic: "transaction",
+                                                message: e.message,
+                                                height: tx.height,
+                                                hash: tx.hash,
+                                                block: tx.block
+                                            });
+                                            console.error(e);
+                                        });
                                 }))
                                 .then(() => MongoDB.addBlock(header))
-                                .then(() => console.info('added block #%i %s', number, header.hash));
+                                .then(() => {
+                                    winston.info('block added', {
+                                        topic: "block",
+                                        message: "added",
+                                        height: number,
+                                        hash: header.hash
+                                    });
+                                });
                         }
                     }));
         });
@@ -68,7 +113,8 @@ function organizeTxOutputs(tx, outputs) {
                     return output;
                 });
         } else {
-          //not handled type of TX
+            //not handled type of TX
+            return null;
         }
     }));
 }
@@ -98,7 +144,8 @@ function organizeTxPreviousOutputs(input) {
                         return input;
                     });
             } else {
-              //not handled type of TX
+                //not handled type of TX
+                return null;
             }
         });
 }
@@ -143,6 +190,12 @@ function detectFork(number, hash, forkhead, is_fork) {
                 if (!is_fork) {
                     Messenger.send('Fork Detected', `Detected fork on block ${block.hash}`);
                     console.log('fork detected!!!');
+                    winston.warning('fork detected', {
+                        topic: "fork",
+                        message: "blockchain forked",
+                        height: block.number,
+                        block: block.hash
+                    });
                 }
                 return MongoDB.getBlock(hash)
                     .then(() => detectFork(number - 1, block.previous_block_hash, (forkhead) ? forkhead : block.hash, true));
@@ -160,6 +213,13 @@ function applyFork(number, forkhead) {
         .then((forksize) => {
             Messenger.send('Fork Resolved', `Forked ${forksize} blocks from ${number} to block ${forkhead}`);
             console.log('forked %i blocks from %i to block %s', forksize, number, forkhead);
+            winston.warning('fork resolved', {
+                topic: "fork",
+                message: "blockchain fork resolved",
+                height: number,
+                block: forkhead,
+                size: forksize
+            });
             return forksize;
         });
 }
@@ -171,15 +231,28 @@ function wait(ms) {
 MongoDB.init()
     .then(() => MongoDB.getLastBlock())
     .then((lastblock) => {
-        if (lastblock)
-            Messenger.send('Sync Starting', `Starting to sync from ${lastblock.number}`);
-        else
-            Messenger.send('Sync Starting', `Starting to sync from 0`);
+        if (lastblock) {
+            winston.info('sync starting', {
+                topic: "sync",
+                message: "continue",
+                height: lastblock.number
+            });
+        } else {
+            winston.info('sync starting', {
+                topic: "sync",
+                message: "starting",
+                height: 0
+            });
+        }
         return MongoDB.removeBlock((lastblock) ? lastblock.hash : 0)
             .then(() => syncBlocksFrom((lastblock) ? lastblock.number : 0));
     })
     .catch((error) => {
         console.error(error);
-        Messenger.send('Sync Error', error.message);
+        winston.error('sync error', {
+            topic: "sync",
+            message: error.message,
+            details: error
+        });
         return MongoDB.disconnect();
     });
