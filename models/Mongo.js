@@ -49,7 +49,7 @@ function init() {
                 database.collection('tx').createIndex({
                     height: -1
                 }),
-                database.createCollection('assets'),
+                database.createCollection('asset'),
             ])
         );
 }
@@ -94,7 +94,7 @@ function addTx(tx) {
 }
 
 function addAsset(asset) {
-    return database.collection('assets').insertOne(asset);
+    return database.collection('asset').insertOne(asset);
 }
 
 function markOutputsAsSpent(tx) {
@@ -206,12 +206,12 @@ function markOrphanTxsFrom(number) {
 
 function getAsset(asset) {
     return new Promise((resolve, reject) => {
-        database.collection('assets').findOne({
+        database.collection('asset').findOne({
             symbol: asset
-        }, (err, symbol) => {
+        }, (err, result) => {
             if (err) throw err.message;
             else
-                resolve(asset);
+                resolve(result);
         });
     });
 }

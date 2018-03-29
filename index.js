@@ -52,11 +52,12 @@ function syncBlock(number) {
 function organizeTxOutputs(tx, outputs) {
     return Promise.all(outputs.map((output) => {
         if (output.attachment.type == "etp") {
-            output.assets = "ETP";
+            output.asset = "ETP";
             output.decimals = 8;
             return output;
         } else if (output.attachment.type == "asset-issue") {
-            output.assets = output.attachment.symbol.toUpperCase();
+            output.value = output.attachment.quantity;
+            output.asset = output.attachment.symbol.toUpperCase();
             delete output.attachment.type;
             output.attachment.hash = tx.hash;
             output.attachment.height = tx.height;
@@ -65,7 +66,9 @@ function organizeTxOutputs(tx, outputs) {
         } else {
             return MongoDB.getAsset(output.attachment.symbol)
                 .then((asset) => {
-                    output.assets = output.attachment.symbol.toUpperCase();
+                    console.log(asset)
+                    output.asset = output.attachment.symbol.toUpperCase();
+                    output.value = output.attachment.quantity;
                     output.decimals = asset.decimal_number;
                     return output;
                 });
@@ -78,7 +81,7 @@ function organizeTxPreviousOutputs(input) {
         .then((previousTx) => {
             var previousOutput = previousTx.outputs[input.previous_output.index];
             if (previousOutput.attachment.type == "etp") {
-                input.assets = "ETP";
+                input.asset = "ETP";
                 input.decimals = 8;
                 input.value = previousOutput.value;
                 input.address = previousOutput.address;
@@ -107,9 +110,10 @@ function organizeTxInputs(inputs) {
         if (input.previous_output.index < 4294967295) {
             return organizeTxPreviousOutputs(input);
         } else {
-            input.assets = "ETP";
+            input.asset = "ETP";
             input.decimals = 8;
             input.address = "";
+            input.value = 0;
             return input;
         }
     }));
