@@ -15,11 +15,6 @@ if (log_config.logstash.enabled) {
     });
 }
 
-winston.info('start', {
-    test: 1,
-    info: "hallo"
-});
-
 async function syncBlocksFrom(start) {
     while (true) {
         try {
