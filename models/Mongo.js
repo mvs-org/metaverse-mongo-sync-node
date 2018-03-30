@@ -24,7 +24,6 @@ function init() {
     return connect('mongodb://127.0.0.1:27017', 'metaverse')
         .then(() =>
             Promise.all([
-                database.createCollection('block'),
                 database.collection('block').createIndex({
                     hash: 1,
                     block: 1
@@ -35,7 +34,14 @@ function init() {
                     number: -1,
                     orphan: 1
                 }),
-                database.createCollection('tx'),
+                database.collection('tx').createIndex({
+                    "inputs.address": 1,
+                    "orphan": 1
+                }),
+                database.collection('tx').createIndex({
+                    "outputs.address": 1,
+                    "orphan": 1
+                }),
                 database.collection('tx').createIndex({
                     hash: 1,
                     block: 1
@@ -48,7 +54,6 @@ function init() {
                 database.collection('tx').createIndex({
                     height: -1
                 }),
-                database.createCollection('asset'),
                 database.collection('pool').createIndex({
                     name: 1
                 }, {
