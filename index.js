@@ -96,7 +96,7 @@ function organizeTxOutputs(tx, outputs) {
             output.attachment.decimals = 8;
             return output;
         } else if (output.attachment.type == "asset-issue") {
-            delete output.attachment.type;
+            //delete output.attachment.type;
             output.attachment.decimals = output.attachment.decimal_number;
             delete output.attachment.decimal_number;
             output.attachment.hash = tx.hash;
