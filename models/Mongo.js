@@ -20,118 +20,132 @@ let service = {
     getBlockByNumber: getBlockByNumber
 };
 
+function initPools() {
+    return database.collection('pool')
+        .createIndex({
+            name: 1
+        }, {
+            unique: true
+        })
+        .then(() => {
+            try {
+                database.collection('pool').insert([{
+                        name: "uupool",
+                        url: 'http://www.uupool.cn',
+                        origin: 'China',
+                        addresses: ['M97VaaTYnKtGzfMFrreitiYoy84Eueb16N']
+                    },
+                    {
+                        name: "xinyuanjie",
+                        url: 'http://xinyuanjie.org',
+                        origin: 'China',
+                        addresses: ['MKD5pmeyR14KGUxLo7YEECbgJ7MfrLPdTG']
+                    },
+                    {
+                        name: "dodopool",
+                        url: 'http://etp.dodopool.com',
+                        origin: 'UK',
+                        addresses: ['M8vkrEVPJCDn54L3TN64W3Grrq3KkBNVXh']
+                    },
+                    {
+                        name: "huopool",
+                        url: 'http://cryptopoolpond.com/#/',
+                        origin: 'China',
+                        addresses: ['MGr3pfTK8qJx3JEVnkTBjUSQZVK4jDujpZ']
+                    },
+                    {
+                        name: "metaverse.farm",
+                        url: 'https://metaverse.farm',
+                        origin: 'UK',
+                        addresses: ['MEVgP8kvucyR9523t71FVKSiZccQjeK4ki']
+                    },
+                    {
+                        name: "altpool.pro",
+                        url: 'http://etp.altpool.pro',
+                        origin: 'Europe',
+                        addresses: ['M97sAWjC2Du6RNBaHiCoqZFAGYXWrTM9At']
+                    },
+                    {
+                        name: "fairpool",
+                        url: 'https://etp.fairpool.xyz',
+                        origin: 'US',
+                        addresses: ['MGodWFRV7wu3jzwqfDakSCoH6ouhBL2TVG']
+                    },
+                    {
+                        name: "comining.io",
+                        url: 'http://comining.io',
+                        origin: 'Russia',
+                        addresses: ['MNd7ZeeadbSzEAtXmQ7B1SsoEoi7kHUWPg']
+                    },
+                    {
+                        name: "mvs",
+                        url: 'http://pool.mvs.live',
+                        origin: 'China',
+                        addresses: ['MFuFkdbp77YFQ24CnfLdLaKCdh9ASsR4r2']
+                    },
+                    {
+                        name: "cryptopoolpond",
+                        url: 'http://cryptopoolpond.com/#/',
+                        origin: 'US/Europe',
+                        addresses: ['MPVYH9GQGZkJc4rZ4ZEx9bnV1mpa3M4whw']
+                    },
+                    {
+                        name: "sandpool.org",
+                        url: 'http:/etp.sandpool.org',
+                        origin: 'Europe',
+                        addresses: ['MWHLJTawEecdiz8xBK98GB6MGD1qzYRmrP']
+                    }
+                ]);
+            } catch (e) {
+                console.error(e);
+            }
+        });
+}
+
+function initBlocks() {
+    return Promise.all([
+        database.collection('block').createIndex({
+            hash: 1,
+            block: 1
+        }, {
+            unique: true
+        }),
+        database.collection('block').createIndex({
+            number: -1,
+            orphan: 1
+        })
+    ]);
+}
+
+function initTxs() {
+    return Promise.all([
+        database.collection('tx').createIndex({
+            "inputs.address": 1,
+            "orphan": 1
+        }),
+        database.collection('tx').createIndex({
+            "outputs.address": 1,
+            "orphan": 1
+        }),
+        database.collection('tx').createIndex({
+            hash: 1,
+            block: 1
+        }, {
+            unique: true
+        }),
+        database.collection('tx').createIndex({
+            hash: 1
+        }),
+        database.collection('tx').createIndex({
+            height: -1
+        })
+    ]);
+}
 function init() {
     return connect('mongodb://127.0.0.1:27017', 'metaverse')
-        .then(() =>
-            Promise.all([
-                database.collection('block').createIndex({
-                    hash: 1,
-                    block: 1
-                }, {
-                    unique: true
-                }),
-                database.collection('block').createIndex({
-                    number: -1,
-                    orphan: 1
-                }),
-                database.collection('tx').createIndex({
-                    "inputs.address": 1,
-                    "orphan": 1
-                }),
-                database.collection('tx').createIndex({
-                    "outputs.address": 1,
-                    "orphan": 1
-                }),
-                database.collection('tx').createIndex({
-                    hash: 1,
-                    block: 1
-                }, {
-                    unique: true
-                }),
-                database.collection('tx').createIndex({
-                    hash: 1
-                }),
-                database.collection('tx').createIndex({
-                    height: -1
-                }),
-                database.collection('pool').createIndex({
-                    name: 1
-                }, {
-                    unique: true
-                }),
-                function() {
-                    try {
-                        database.collection('pool').insert([{
-                                name: "uupool",
-                                url: 'http://www.uupool.cn',
-                                origin: 'China',
-                                addresses: ['M97VaaTYnKtGzfMFrreitiYoy84Eueb16N']
-                            },
-                            {
-                                name: "xinyuanjie",
-                                url: 'http://xinyuanjie.org',
-                                origin: 'China',
-                                addresses: ['MKD5pmeyR14KGUxLo7YEECbgJ7MfrLPdTG']
-                            },
-                            {
-                                name: "dodopool",
-                                url: 'http://etp.dodopool.com',
-                                origin: 'UK',
-                                addresses: ['M8vkrEVPJCDn54L3TN64W3Grrq3KkBNVXh']
-                            },
-                            {
-                                name: "huopool",
-                                url: 'http://cryptopoolpond.com/#/',
-                                origin: 'China',
-                                addresses: ['MGr3pfTK8qJx3JEVnkTBjUSQZVK4jDujpZ']
-                            },
-                            {
-                                name: "metaverse.farm",
-                                url: 'https://metaverse.farm',
-                                origin: 'UK',
-                                addresses: ['MEVgP8kvucyR9523t71FVKSiZccQjeK4ki']
-                            },
-                            {
-                                name: "altpool.pro",
-                                url: 'http://etp.altpool.pro',
-                                origin: 'Europe',
-                                addresses: ['M97sAWjC2Du6RNBaHiCoqZFAGYXWrTM9At']
-                            },
-                            {
-                                name: "fairpool",
-                                url: 'https://etp.fairpool.xyz',
-                                origin: 'US',
-                                addresses: ['MGodWFRV7wu3jzwqfDakSCoH6ouhBL2TVG']
-                            },
-                            {
-                                name: "comining.io",
-                                url: 'http://comining.io',
-                                origin: 'Russia',
-                                addresses: ['MNd7ZeeadbSzEAtXmQ7B1SsoEoi7kHUWPg']
-                            },
-                            {
-                                name: "mvs",
-                                url: 'http://pool.mvs.live',
-                                origin: 'China',
-                                addresses: ['MFuFkdbp77YFQ24CnfLdLaKCdh9ASsR4r2']
-                            },
-                            {
-                                name: "cryptopoolpond",
-                                url: 'http://cryptopoolpond.com/#/',
-                                origin: 'US/Europe',
-                                addresses: ['MPVYH9GQGZkJc4rZ4ZEx9bnV1mpa3M4whw']
-                            },
-                            {
-                                name: "sandpool.org",
-                                url: 'http:/etp.sandpool.org',
-                                origin: 'Europe',
-                                addresses: ['MWHLJTawEecdiz8xBK98GB6MGD1qzYRmrP']
-                            }
-                        ]);
-                    } catch (e) {}
-                }
-            ])
-        );
+        .then(() => initPools())
+        .then(() => initBlocks())
+        .then(() => initTxs());
 }
 
 function removeBlock(hash) {
