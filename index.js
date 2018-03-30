@@ -97,6 +97,8 @@ function organizeTxOutputs(tx, outputs) {
             return output;
         } else if (output.attachment.type == "asset-issue") {
             delete output.attachment.type;
+            output.attachment.decimals = output.attachment.decimal_number;
+            delete output.attachment.decimal_number;
             output.attachment.hash = tx.hash;
             output.attachment.height = tx.height;
             newAsset(output.attachment);
@@ -104,7 +106,7 @@ function organizeTxOutputs(tx, outputs) {
         } else if (output.attachment.type == "asset-transfer") {
             return MongoDB.getAsset(output.attachment.symbol)
                 .then((asset) => {
-                    output.attachment.decimals = asset.decimal_number;
+                    output.attachment.decimals = asset.decimals;
                     return output;
                 });
         } else {
@@ -136,19 +138,19 @@ function organizeTxPreviousOutputs(input) {
             input.address = previousOutput.address;
             if (previousOutput.attachment.type == "etp") {
                 input.attachment.symbol = "ETP";
-                input.attachment.decimal_number = 8;
+                input.attachment.decimals = 8;
                 return input;
             } else if (previousOutput.attachment.type == "asset-issue") {
                 input.attachment.quantity = previousOutput.attachment.quantity;
                 input.attachment.symbol = previousOutput.attachment.symbol;
-                input.attachment.decimal_number = previousOutput.attachment.decimal_number;
+                input.attachment.decimals = previousOutput.attachment.decimals;
                 return input;
             } else if (previousOutput.attachment.type == "asset-transfer") {
                 return MongoDB.getAsset(previousOutput.attachment.symbol)
                     .then((asset) => {
                         input.attachment.quantity = previousOutput.attachment.quantity;
                         input.attachment.symbol = previousOutput.attachment.symbol;
-                        input.attachment.decimal_number = asset.decimal_number;
+                        input.attachment.decimals = asset.decimals;
                         return input;
                     });
             } else {
