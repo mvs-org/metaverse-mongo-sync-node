@@ -316,7 +316,10 @@ function connect(url, name) {
             w: 1,
             j: false
         }, (err, con) => {
-            if (err) throw err;
+            if (err) {
+                console.error(err);
+                throw Error(err.message)
+            }
             else {
                 client = con;
                 database = con.db(name);
