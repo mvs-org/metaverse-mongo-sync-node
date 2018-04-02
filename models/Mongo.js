@@ -318,7 +318,7 @@ function connect(url, name) {
         }, (err, con) => {
             if (err) {
                 console.error(err);
-                throw Error(err.message)
+                process.exit(1);
             }
             else {
                 client = con;
