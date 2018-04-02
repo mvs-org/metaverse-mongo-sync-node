@@ -1,6 +1,7 @@
 let requestify = require('requestify');
+let config = require('../config/mvsd.js');
 
-let url = 'http://127.0.0.1:8820/rpc/v2';
+let url = 'http://'+config.host+':'+config.port+'/rpc/v2';
 
 let service = {
     getBlock: getBlock,

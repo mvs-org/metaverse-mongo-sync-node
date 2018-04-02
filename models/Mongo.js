@@ -1,6 +1,7 @@
 let MongoClient = require('mongodb').MongoClient;
 let Promise = require('bluebird');
 
+let config = require('../config/mongo.js');
 let client = null;
 let database = null;
 
@@ -142,7 +143,7 @@ function initTxs() {
     ]);
 }
 function init() {
-    return connect('mongodb://127.0.0.1:27017', 'metaverse')
+    return connect('mongodb://'+config.host+':'+config.port, config.database)
         .then(() => initPools())
         .then(() => initBlocks())
         .then(() => initTxs());
