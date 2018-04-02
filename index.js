@@ -62,6 +62,7 @@ function syncBlock(number) {
                                     tx.height = number;
                                     tx.orphan = 0;
                                     tx.block = header.hash;
+                                    tx.time_stamp = header.time_stamp;
                                     return organizeTx(tx)
                                         .then((updatedTx) => MongoDB.addTx(updatedTx))
                                         .catch((e) => {
