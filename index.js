@@ -92,7 +92,7 @@ function syncBlock(number) {
 
 function organizeTxOutputs(tx, outputs) {
     return Promise.all(outputs.map((output) => {
-        if (output.attachment.type == "etp") {
+        if (output.attachment.type == "etp" || output.attachment.type == "message") {
             output.attachment.symbol = "ETP";
             output.attachment.decimals = 8;
             return output;
@@ -137,7 +137,7 @@ function organizeTxPreviousOutputs(input) {
             input.attachment = {};
             input.value = previousOutput.value;
             input.address = previousOutput.address;
-            if (previousOutput.attachment.type == "etp") {
+            if (previousOutput.attachment.type == "etp" || output.attachment.type == "message") {
                 input.attachment.symbol = "ETP";
                 input.attachment.decimals = 8;
                 return input;
