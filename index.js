@@ -78,6 +78,8 @@ function syncBlock(number) {
                                 }))
                                 .then(() => MongoDB.addBlock(header))
                                 .then(() => {
+                                    if(number%100000==0)
+                                        Messenger.send('Sync milestone', `Block #${number} reached`);
                                     winston.info('block added', {
                                         topic: "block",
                                         message: "added",
@@ -263,6 +265,7 @@ MongoDB.init()
     .then(() => MongoDB.getLastBlock())
     .then((lastblock) => {
         if (lastblock) {
+            Messenger.send('Sync start','sync starting from block '+lastblock.number);
             winston.info('sync starting', {
                 topic: "sync",
                 message: "continue",
@@ -280,6 +283,7 @@ MongoDB.init()
     })
     .catch((error) => {
         console.error(error);
+        Messenger.send('Sync exit',error.message);
         winston.error('sync error', {
             topic: "sync",
             message: error.message,
