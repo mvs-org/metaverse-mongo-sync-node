@@ -112,7 +112,17 @@ function organizeTxOutputs(tx, outputs) {
                 });
         } else {
             //not handled type of TX
-            return null;
+            Messenger.send('Unknow type', `Unknow output type in block ${tx.height}, transaction ${tx.hash}, index ${output.index}`);
+            console.log('Unknown output type in blocks %i, transaction %i, index %i', tx.height, tx.hash, output.index);
+            winston.error('unknow type', {
+                topic: "transaction",
+                message: "unknown output type",
+                height: tx.height,
+                hash: tx.hash,
+                block: tx.block,
+                index: output.index
+            });
+            return output;
         }
     }));
 }
@@ -156,7 +166,17 @@ function organizeTxPreviousOutputs(input) {
                     });
             } else {
                 //not handled type of TX
-                return null;
+                Messenger.send('Unknow type', `Unknow output type in block ${previousTx.height}, transaction ${previousTx.hash}, index ${input.previous_output.index}`);
+                console.log('Unknown output type in blocks %i, transaction %i, index %i', previousTx.hash, previousTx.height, input.previous_output.index);
+                winston.error('unknow type', {
+                    topic: "transaction",
+                    message: "unknown output type",
+                    height: previousTx.height,
+                    hash: previousTx.hash,
+                    block: previousTx.block,
+                    index: input.previous_output.index
+                });
+                return input;
             }
         });
 }
