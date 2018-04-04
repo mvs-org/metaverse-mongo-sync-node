@@ -1,9 +1,11 @@
 let requestify = require('requestify');
+let config = require('../config/mvsd.js');
 
-let url = 'http://127.0.0.1:8820/rpc/v2';
+let url = 'http://'+config.host+':'+config.port+'/rpc/v2';
 
 let service = {
-    getBlock: getBlock
+    getBlock: getBlock,
+    getTx: getTx
 };
 
 function getBlock(number) {
@@ -13,6 +15,28 @@ function getBlock(number) {
             "params": [number,
                 {
                     "json": true
+                }
+            ],
+            "id": 27
+    }, {dataType: 'json'})
+        .then((response) => {
+            response = JSON.parse(response.getBody());
+            if (response.error != undefined && response.error.code) {
+                console.error(response.error.message);
+                throw Error(response.error.code);
+            } else {
+                return response.result;
+            }
+        });
+}
+
+function getTx(hash, json) {
+    return requestify.post(url, {
+            "jsonrpc": "2.0",
+            "method": "gettx",
+            "params": [hash,
+                {
+                    "json": json
                 }
             ],
             "id": 27
