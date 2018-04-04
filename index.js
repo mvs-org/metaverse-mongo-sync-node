@@ -149,7 +149,7 @@ function organizeTxPreviousOutputs(input) {
             input.attachment = {};
             input.value = previousOutput.value;
             input.address = previousOutput.address;
-            if (previousOutput.attachment.type == "etp" || output.attachment.type == "message") {
+            if (previousOutput.attachment.type == "etp" || previousOutput.attachment.type == "message") {
                 input.attachment.symbol = "ETP";
                 input.attachment.decimals = 8;
                 return input;
