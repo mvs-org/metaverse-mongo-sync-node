@@ -18,8 +18,11 @@ if (log_config.logstash.enabled) {
 async function syncBlocksFrom(start) {
     while (true) {
         try {
-            await syncBlock(start);
-            start++;
+            orphaned = await syncBlock(start);
+            if(orphaned)
+                start-=orphaned;
+            else
+                start++;
         } catch (error) {
             if (error.message == 5101) {
                 console.info('nothing to do. retry');
@@ -32,6 +35,7 @@ async function syncBlocksFrom(start) {
                     details: error,
                     height: start
                 });
+                await wait(2000);
                 throw Error(error.message);
             }
         }
@@ -44,7 +48,7 @@ function syncBlock(number) {
             let header = block.header.result;
             header.orphan = 0;
             return detectFork(number - 1, header.previous_block_hash, null, false)
-                .then((length) => (length) ? syncBlock(number) :
+                .then((length) => (length) ? length :
                     MongoDB.getBlock(header.hash)
                     .then((b) => {
                         header.txs = [];
@@ -86,7 +90,8 @@ function syncBlock(number) {
                                         height: number,
                                         hash: header.hash
                                     });
-                                });
+                                })
+                                .then(()=>0);//0 blocks orphan
                         }
                     }));
         });
@@ -223,20 +228,20 @@ function detectFork(number, hash, forkhead, is_fork) {
                 if (!is_fork) {
                     Messenger.send('Fork Detected', `Detected fork on block ${block.hash}`);
                     console.log('fork detected!!!');
-                    winston.warning('fork detected', {
+                    winston.warn('fork detected', {
                         topic: "fork",
                         message: "blockchain forked",
                         height: block.number,
                         block: block.hash
                     });
                 }
-                return MongoDB.getBlock(hash)
-                    .then(() => detectFork(number - 1, block.previous_block_hash, (forkhead) ? forkhead : block.hash, true));
+    //            return MongoDB.getBlock(hash)
+                    return detectFork(number - 1, block.previous_block_hash, (forkhead) ? forkhead : block.hash, true);
             } else {
                 if (!is_fork)
                     return null;
                 else
-                    return applyFork(number + 1, forkhead);
+                    return applyFork(number, forkhead);
             }
         });
 }
@@ -246,7 +251,7 @@ function applyFork(number, forkhead) {
         .then((forksize) => {
             Messenger.send('Fork Resolved', `Forked ${forksize} blocks from ${number} to block ${forkhead}`);
             console.log('forked %i blocks from %i to block %s', forksize, number, forkhead);
-            winston.warning('fork resolved', {
+            winston.warn('fork resolved', {
                 topic: "fork",
                 message: "blockchain fork resolved",
                 height: number,
