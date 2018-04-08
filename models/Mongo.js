@@ -256,7 +256,8 @@ function markOrphanFrom(number, forkhead) {
     return Promise.all([
         markOrphanBlocksFrom(number, forkhead),
         markOrphanTxsFrom(number)
-    ]);
+    ])
+    .then((results)=>results[0])
 }
 
 function markOrphanBlocksFrom(number, forkhead) {
