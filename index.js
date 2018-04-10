@@ -18,11 +18,13 @@ if (log_config.logstash.enabled) {
 async function syncBlocksFrom(start) {
     while (true) {
         try {
-            orphaned = await syncBlock(start);
+            let orphaned = await syncBlock(start);
             if(orphaned)
                 start-=orphaned;
             else
                 start++;
+            if(start>=1000&&start%100==0)
+                await MongoDB.prepareStats(start-100);
         } catch (error) {
             if (error.message == 5101) {
                 console.info('nothing to do. retry');
@@ -265,6 +267,7 @@ function applyFork(number, forkhead) {
 function wait(ms) {
     return new Promise(resolve => setTimeout(() => resolve(), ms));
 }
+
 
 MongoDB.init()
     .then(() => MongoDB.getLastBlock())
