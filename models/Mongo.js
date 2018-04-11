@@ -12,6 +12,7 @@ let service = {
     addBlock: addBlock,
     addAsset: addAsset,
     getAsset: getAsset,
+    prepareStats: prepareStats,
     removeBlock: removeBlock,
     getLastBlock: getLastBlock,
     getBlock: getBlock,
@@ -118,6 +119,16 @@ function initBlocks() {
     ]);
 }
 
+function initConfig() {
+    return Promise.all([
+        database.collection('config').createIndex({
+            "setting": 1
+        }, {
+            unique: true
+        })
+    ]);
+}
+
 function initTxs() {
     return Promise.all([
         database.collection('tx').createIndex({
@@ -142,10 +153,12 @@ function initTxs() {
         })
     ]);
 }
+
 function init() {
-    return connect('mongodb://'+config.host+':'+config.port, config.database)
+    return connect('mongodb://' + config.host + ':' + config.port, config.database)
         .then(() => initPools())
         .then(() => initBlocks())
+        .then(() => initConfig())
         .then(() => initTxs());
 }
 
@@ -254,10 +267,10 @@ function getBlockByNumber(number) {
 
 function markOrphanFrom(number, forkhead) {
     return Promise.all([
-        markOrphanBlocksFrom(number, forkhead),
-        markOrphanTxsFrom(number)
-    ])
-    .then((results)=>results[0])
+            markOrphanBlocksFrom(number, forkhead),
+            markOrphanTxsFrom(number)
+        ])
+        .then((results) => results[0]);
 }
 
 function markOrphanBlocksFrom(number, forkhead) {
@@ -320,14 +333,95 @@ function connect(url, name) {
             if (err) {
                 console.error(err);
                 process.exit(1);
-            }
-            else {
+            } else {
                 client = con;
                 database = con.db(name);
                 resolve();
             }
         });
     });
+}
+
+function getConfig(setting) {
+    return database.collection('config').findOne({
+        setting: setting
+    });
+}
+
+function prepareStats(to_block) {
+    return getConfig('address_balances')
+        .then((config) => {
+            if (!config)
+                config = {setting: 'address_balances'};
+            if (!config.latest_block)
+                config.latest_block = -1;
+            if (to_block < config.latest_block)
+                throw Error('ERR_PREPARE_ADDRESS_STATISTICS');
+            else {
+                return database.collection('tx').mapReduce(function() {
+                            this.inputs.forEach((input) => {
+                                if (input.address !== "") {
+                                    if (input && input.value) {
+                                        emit(input.address, {
+                                            "ETP": -input.value
+                                        });
+                                    }
+                                    if (input.attachment.symbol && input.attachment.symbol !== "ETP") {
+                                        emit(input.address, {
+                                            [input.attachment.symbol.replace(/\./g,'_')]: -input.attachment.quantity
+                                        });
+                                    }
+                                }
+                                else if(input&&input.previous_output.hash=="0000000000000000000000000000000000000000000000000000000000000000")
+                                    emit("coinbase", {"ETP": -this.outputs[0].value});
+                            });
+                            this.outputs.forEach((output) => {
+                                if (output && output.address) {
+                                    if (output.value)
+                                        emit(output.address, {
+                                            "ETP": output.value
+                                        });
+                                    if (output.attachment.symbol && output.attachment.symbol !== "ETP")
+                                        emit(output.address, {
+                                            [output.attachment.symbol.replace(/\./g,'_')]: output.attachment.quantity
+                                        });
+                                }
+                            });
+                        },
+                        function(address, values) {
+                            var result = {};
+                            values.forEach((item) => {
+                                Object.keys(item).forEach((symbol) => {
+                                    if (result[symbol]) {
+                                        result[symbol] += item[symbol];
+                                    } else
+                                        result[symbol] = item[symbol];
+                                });
+                            });
+                            return result;
+                        }, {
+                            out: {
+                                reduce: 'address_balances'
+                            },
+                            query: {
+                                orphan: 0,
+                                height: {
+                                    $gt: config.latest_block,
+                                    $lte: to_block
+                                }
+                            }
+                        }
+                    )
+                    .then(() => {
+                        config.latest_block = to_block;
+                        return database.collection('config').update({
+                            'setting': 'address_balances'
+                        }, config, {
+                            upsert: true
+                        });
+                    });
+            }
+        });
 }
 
 module.exports = service;
