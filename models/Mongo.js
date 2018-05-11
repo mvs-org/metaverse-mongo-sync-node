@@ -11,6 +11,7 @@ let service = {
     addTx: addTx,
     addBlock: addBlock,
     addAsset: addAsset,
+    addOutputs: addOutputs,
     getAsset: getAsset,
     prepareStats: prepareStats,
     removeBlock: removeBlock,
@@ -18,7 +19,7 @@ let service = {
     getBlock: getBlock,
     getTx: getTx,
     markOrphanFrom: markOrphanFrom,
-    markOutputsAsSpent: markOutputsAsSpent,
+    markSpentOutput: markSpentOutput,
     getBlockByNumber: getBlockByNumber
 };
 
@@ -119,6 +120,26 @@ function initBlocks() {
     ]);
 }
 
+function initOutputs() {
+    return Promise.all([
+        database.collection('output').createIndex({
+            tx: 1,
+            index: 1,
+            orphaned_at: 1,
+            spent_tx: 1,
+            spent_index: 1
+        }, {
+            unique: true
+        }),
+        database.collection('output').createIndex({
+            height: -1,
+            address: 1,
+            orphaned_at: 1,
+            spent_tx: 1
+        })
+    ]);
+}
+
 function initConfig() {
     return Promise.all([
         database.collection('config').createIndex({
@@ -159,6 +180,7 @@ function init() {
         .then(() => initPools())
         .then(() => initBlocks())
         .then(() => initConfig())
+        .then(() => initOutputs())
         .then(() => initTxs());
 }
 
@@ -197,35 +219,16 @@ function addBlock(header) {
     return database.collection('block').insertOne(header);
 }
 
+function addOutputs(outputs) {
+    return database.collection('output').insertMany(outputs);
+}
+
 function addTx(tx) {
     return database.collection('tx').insertOne(tx);
 }
 
 function addAsset(asset) {
     return database.collection('asset').insertOne(asset);
-}
-
-function markOutputsAsSpent(tx) {
-    return Promise.all(tx.inputs.map((input, index) => {
-        if (input.previous_output.index < 4294967295)
-            return database.collection('tx').find({
-                hash: input.previous_output.hash
-            }).toArray().then((input_txs) => {
-                if (!input_txs.length) {
-                    console.error("couldnt find %s %s for %s", input.previous_output.hash, input.previous_output.index, tx.hash);
-                    process.exit();
-                }
-                let input_tx = input_txs[0];
-                input_tx.outputs[input.previous_output.index].spent_in = {
-                    hash: tx.hash,
-                    index: index
-                };
-                return database.collection('tx').update({
-                    hash: input_tx.hash
-                }, input_tx).then(() => console.info('marked output %s %i as spent', input_tx.hash, index));
-            });
-        else return null; //Coinbase input
-    }));
 }
 
 function getBlock(hash) {
@@ -266,8 +269,10 @@ function getBlockByNumber(number) {
 }
 
 function markOrphanFrom(number, forkhead) {
+    let now = Math.floor(Date.now() / 1000);
     return Promise.all([
             markOrphanBlocksFrom(number, forkhead),
+            markOrphanOutputsFrom(number, now),
             markOrphanTxsFrom(number)
         ])
         .then((results) => results[0]);
@@ -298,7 +303,7 @@ function markOrphanTxsFrom(number) {
             height: {
                 $gt: number
             },
-            orphan: 0
+            orphed_at: 0
         }, {
             $set: {
                 orphan: 1
@@ -308,7 +313,44 @@ function markOrphanTxsFrom(number) {
             else
                 setTimeout(() => resolve(result.result.nModified), 10000);
         });
-        //TODO Add the same logic for transaction
+    });
+}
+
+function markSpentOutput(spending_tx, spending_index, spent_tx, spent_index) {
+    return new Promise((resolve, reject) => {
+        database.collection('output').updateMany({
+            orphaned_at: 0,
+            tx: spent_tx,
+            index: spent_index
+        }, {
+            $set: {
+                spent_tx: spending_tx,
+                spent_index: spending_index
+            }
+        }, (err, result) => {
+            if (err) throw err.message;
+            else
+                resolve(result.result.nModified);
+        });
+    });
+}
+
+function markOrphanOutputsFrom(height, timestamp = 1) {
+    return new Promise((resolve, reject) => {
+        database.collection('output').updateMany({
+            height: {
+                $gt: height
+            },
+            orphaned_at: 0
+        }, {
+            $set: {
+                orphaned_at: timestamp
+            }
+        }, (err, result) => {
+            if (err) throw err.message;
+            else
+                resolve(result.result.nModified);
+        });
     });
 }
 
@@ -352,7 +394,9 @@ function prepareStats(to_block) {
     return getConfig('address_balances')
         .then((config) => {
             if (!config)
-                config = {setting: 'address_balances'};
+                config = {
+                    setting: 'address_balances'
+                };
             if (!config.latest_block)
                 config.latest_block = -1;
             if (to_block < config.latest_block)
@@ -368,12 +412,13 @@ function prepareStats(to_block) {
                                     }
                                     if (input.attachment.symbol && input.attachment.symbol !== "ETP") {
                                         emit(input.address, {
-                                            [input.attachment.symbol.replace(/\./g,'_')]: -input.attachment.quantity
+                                            [input.attachment.symbol.replace(/\./g, '_')]: -input.attachment.quantity
                                         });
                                     }
-                                }
-                                else if(input&&input.previous_output.hash=="0000000000000000000000000000000000000000000000000000000000000000")
-                                    emit("coinbase", {"ETP": -this.outputs[0].value});
+                                } else if (input && input.previous_output.hash == "0000000000000000000000000000000000000000000000000000000000000000")
+                                    emit("coinbase", {
+                                        "ETP": -this.outputs[0].value
+                                    });
                             });
                             this.outputs.forEach((output) => {
                                 if (output && output.address) {
@@ -383,7 +428,7 @@ function prepareStats(to_block) {
                                         });
                                     if (output.attachment.symbol && output.attachment.symbol !== "ETP")
                                         emit(output.address, {
-                                            [output.attachment.symbol.replace(/\./g,'_')]: output.attachment.quantity
+                                            [output.attachment.symbol.replace(/\./g, '_')]: output.attachment.quantity
                                         });
                                 }
                             });
