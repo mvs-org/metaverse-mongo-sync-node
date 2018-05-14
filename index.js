@@ -75,6 +75,7 @@ function syncBlock(number) {
                                             output.orphaned_at = 0;
                                             output.height = tx.height;
                                             output.spent_tx = 0;
+                                            output.confirmed_at = tx.confirmed_at;
                                             return output;
                                         }))
                                         .then((outputs) => MongoDB.addOutputs(outputs)
@@ -158,11 +159,12 @@ function organizeTxOutputs(tx, outputs) {
             output.attachment.decimals = 8;
             return output;
         } else if (output.attachment.type == "asset-issue") {
-            //delete output.attachment.type;
             output.attachment.decimals = output.attachment.decimal_number;
             delete output.attachment.decimal_number;
-            output.attachment.hash = tx.hash;
+            output.attachment.issue_tx = tx.hash;
+            output.attachment.issue_index = output.index;
             output.attachment.height = tx.height;
+            output.attachment.confirmed_at = tx.confirmed_at;
             newAsset(output.attachment);
             return output;
         } else if (output.attachment.type == "asset-transfer") {
@@ -171,11 +173,27 @@ function organizeTxOutputs(tx, outputs) {
                     output.attachment.decimals = asset.decimals;
                     return output;
                 });
+        } else if (output.attachment.type == "did-issue") {
+            output.attachment.issue_tx = tx.hash;
+            output.attachment.issue_index = output.index;
+            output.attachment.height = tx.height;
+            output.attachment.original_address = output.attachment.address;
+            output.attachment.updates = [];
+            output.attachment.confirmed_at = tx.confirmed_at;
+            newAvatar(output.attachment);
+            return output;
+        } else if (output.attachment.type == "did-transfer") {
+            output.attachment.issue_tx = tx.hash;
+            output.attachment.issue_index = output.index;
+            output.attachment.height = tx.height;
+            output.attachment.confirmed_at = tx.confirmed_at;
+            newAvatarAddress(output.attachment, output.attachment.symbol, output.attachment.address);
+            return output;
         } else {
             //not handled type of TX
             Messenger.send('Unknow type', `Unknow output type in block ${tx.height}, transaction ${tx.hash}, index ${output.index}`);
             console.log('Unknown output type in blocks %i, transaction %i, index %i', tx.height, tx.hash, output.index);
-            winston.error('unknow type', {
+            winston.warn('unknow type', {
                 topic: "transaction",
                 message: "unknown output type",
                 height: tx.height,
@@ -229,7 +247,7 @@ function organizeTxPreviousOutputs(input) {
                 //not handled type of TX
                 Messenger.send('Unknow type', `Unknow output type in block ${previousTx.height}, transaction ${previousTx.hash}, index ${input.previous_output.index}`);
                 console.log('Unknown output type in blocks %i, transaction %i, index %i', previousTx.hash, previousTx.height, input.previous_output.index);
-                winston.error('unknow type', {
+                winston.warn('unknow type', {
                     topic: "transaction",
                     message: "unknown output type",
                     height: previousTx.height,
@@ -271,8 +289,20 @@ function organizeTx(tx) {
         });
 }
 
-function newAsset(output) {
-    return MongoDB.addAsset(output);
+function newAsset(attachment) {
+    delete attachment.type;
+    return MongoDB.addAsset(attachment);
+}
+
+function newAvatar(attachment) {
+    delete attachment.type;
+    return MongoDB.addAvatar(attachment);
+}
+
+function newAvatarAddress(attachment, symbol, address) {
+    delete attachment.type;
+    delete attachment.symbol;
+    return MongoDB.modifyAvatarAddress(attachment, symbol, address);
 }
 
 function detectFork(number, hash, forkhead, is_fork) {

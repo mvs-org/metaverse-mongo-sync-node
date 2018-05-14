@@ -20,7 +20,10 @@ let service = {
     getTx: getTx,
     markOrphanFrom: markOrphanFrom,
     markSpentOutput: markSpentOutput,
-    getBlockByNumber: getBlockByNumber
+    getBlockByNumber: getBlockByNumber,
+    addAvatar: addAvatar,
+    getAvatar: getAvatar,
+    modifyAvatarAddress : modifyAvatarAddress
 };
 
 function initPools() {
@@ -175,13 +178,35 @@ function initTxs() {
     ]);
 }
 
+function initAssets() {
+    return Promise.all([
+        database.collection('asset').createIndex({
+            symbol: 1
+        }, {
+            unique: true
+        })
+    ]);
+}
+
+function initAvatars() {
+    return Promise.all([
+        database.collection('avatar').createIndex({
+            symbol: 1
+        }, {
+            unique: true
+        })
+    ]);
+}
+
 function init() {
     return connect('mongodb://' + config.host + ':' + config.port, config.database)
         .then(() => initPools())
         .then(() => initBlocks())
         .then(() => initConfig())
         .then(() => initOutputs())
-        .then(() => initTxs());
+        .then(() => initTxs())
+        .then(() => initAssets())
+        .then(() => initAvatars());
 }
 
 function removeBlock(hash) {
@@ -229,6 +254,29 @@ function addTx(tx) {
 
 function addAsset(asset) {
     return database.collection('asset').insertOne(asset);
+}
+
+function addAvatar(avatar) {
+    return database.collection('avatar').insertOne(avatar);
+}
+
+function modifyAvatarAddress(avatar, symbol, newaddress) {
+    return new Promise((resolve, reject) => {
+        database.collection('avatar').updateMany({
+            symbol: symbol
+        }, {
+            $set: {
+                address: newaddress
+            },
+            $push: {
+                updates: avatar 
+            }
+        }, (err, result) => {
+            if (err) throw err.message;
+            else
+                resolve(result.result.nModified);
+        });
+    });
 }
 
 function getBlock(hash) {
@@ -358,6 +406,18 @@ function getAsset(asset) {
     return new Promise((resolve, reject) => {
         database.collection('asset').findOne({
             symbol: asset
+        }, (err, result) => {
+            if (err) throw err.message;
+            else
+                resolve(result);
+        });
+    });
+}
+
+function getAvatar(avatar) {
+    return new Promise((resolve, reject) => {
+        database.collection('avatar').findOne({
+            symbol: avatar
         }, (err, result) => {
             if (err) throw err.message;
             else
