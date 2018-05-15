@@ -189,6 +189,8 @@ function organizeTxOutputs(tx, outputs) {
             output.attachment.confirmed_at = tx.confirmed_at;
             newAvatarAddress(output.attachment, output.attachment.symbol, output.attachment.address);
             return output;
+        } else if (output.attachment.type == "asset-cert") {
+            return output;
         } else {
             //not handled type of TX
             Messenger.send('Unknow type', `Unknow output type in block ${tx.height}, transaction ${tx.hash}, index ${output.index}`);
