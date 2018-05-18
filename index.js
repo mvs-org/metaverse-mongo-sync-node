@@ -70,7 +70,7 @@ function syncBlock(number) {
                                     tx.orphan = 0;
                                     tx.block = header.hash;
                                     tx.confirmed_at = header.time_stamp;
-                                    return Promise.all(tx.outputs.map((output) => {
+                                    return Promise.all(((tx.outputs) ? tx.outputs : []).map((output) => {
                                             output.tx = tx.hash;
                                             output.orphaned_at = 0;
                                             output.height = tx.height;
@@ -113,7 +113,7 @@ function syncBlock(number) {
                                 .then(() => MongoDB.addBlock(header))
                                 .then(() => Promise.all(inputs.map((input) => {
                                     if (input.previous_output.hash !== "0000000000000000000000000000000000000000000000000000000000000000")
-                                        return MongoDB.markSpentOutput(input.tx, input.index, input.previous_output.hash, input.previous_output.index)
+                                        return MongoDB.markSpentOutput(input.tx, input.index, header.number, input.previous_output.hash, input.previous_output.index)
                                             .then((result) => {
                                                 if (result)
                                                     winston.info('output spent', {
@@ -133,7 +133,7 @@ function syncBlock(number) {
                                                     });
                                                     throw Error("ERR_SPENDING_OUTPUT");
                                                 }
-                                            })
+                                            });
                                     return {};
                                 })))
                                 .then(() => {
@@ -223,7 +223,6 @@ function organizeTxPreviousOutputs(input) {
             }
         })
         .then((previousTx) => {
-
             var previousOutput = previousTx.outputs[input.previous_output.index];
             input.attachment = {};
             input.value = previousOutput.value;
@@ -321,8 +320,8 @@ function detectFork(number, hash, forkhead, is_fork) {
                         block: block.hash
                     });
                 }
-                //            return MongoDB.getBlock(hash)
-                return detectFork(number - 1, block.previous_block_hash, (forkhead) ? forkhead : block.hash, true);
+                return Mvsd.getBlock(number - 1)
+                    .then((previousBlock) => detectFork(number - 1, previousBlock.hash, (forkhead) ? forkhead : block.hash, true));
             } else {
                 if (!is_fork)
                     return null;

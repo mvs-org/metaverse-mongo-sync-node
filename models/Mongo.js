@@ -23,7 +23,7 @@ let service = {
     getBlockByNumber: getBlockByNumber,
     addAvatar: addAvatar,
     getAvatar: getAvatar,
-    modifyAvatarAddress : modifyAvatarAddress
+    modifyAvatarAddress: modifyAvatarAddress
 };
 
 function initPools() {
@@ -269,7 +269,7 @@ function modifyAvatarAddress(avatar, symbol, newaddress) {
                 address: newaddress
             },
             $push: {
-                updates: avatar 
+                updates: avatar
             }
         }, (err, result) => {
             if (err) throw err.message;
@@ -321,7 +321,8 @@ function markOrphanFrom(number, forkhead) {
     return Promise.all([
             markOrphanBlocksFrom(number, forkhead),
             markOrphanOutputsFrom(number, now),
-            markOrphanTxsFrom(number)
+            markOrphanTxsFrom(number),
+            markUnspentOutputFrom(number)
         ])
         .then((results) => results[0]);
 }
@@ -364,7 +365,7 @@ function markOrphanTxsFrom(number) {
     });
 }
 
-function markSpentOutput(spending_tx, spending_index, spent_tx, spent_index) {
+function markSpentOutput(spending_tx, spending_index, height, spent_tx, spent_index) {
     return new Promise((resolve, reject) => {
         database.collection('output').updateMany({
             orphaned_at: 0,
@@ -373,7 +374,32 @@ function markSpentOutput(spending_tx, spending_index, spent_tx, spent_index) {
         }, {
             $set: {
                 spent_tx: spending_tx,
-                spent_index: spending_index
+                spent_index: spending_index,
+                spent_height: height
+            }
+        }, (err, result) => {
+            if (err) throw err.message;
+            else
+                resolve(result.result.nModified);
+        });
+    });
+}
+
+/**
+ * Fork handling to make outputs spendable.
+ */
+function markUnspentOutputFrom(start_height) {
+    return new Promise((resolve, reject) => {
+        database.collection('output').updateMany({
+            spent_height: {
+                $gt: start_height
+            },
+            orphaned_at: 0
+        }, {
+            $set: {
+                spent_tx: 0,
+                spent_index: null,
+                spent_height: null
             }
         }, (err, result) => {
             if (err) throw err.message;
