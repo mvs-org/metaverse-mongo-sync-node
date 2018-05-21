@@ -165,8 +165,18 @@ function organizeTxOutputs(tx, outputs) {
             output.attachment.issue_index = output.index;
             output.attachment.height = tx.height;
             output.attachment.confirmed_at = tx.confirmed_at;
-            newAsset(output.attachment);
-            return output;
+            return MongoDB.getAsset(output.attachment.symbol)
+                .then((asset) => {
+                    if(asset == null) {   //New asset
+                        output.attachment.original_quantity = output.attachment.quantity;
+                        output.attachment.updates = [];
+                        newAsset(output.attachment);
+                    } else {    //Secondary issue
+                        //output.attachment.original_quantity = asset.quantity;
+                        secondaryIssue(output.attachment);
+                    }
+                    return output;
+                });
         } else if (output.attachment.type == "asset-transfer") {
             return MongoDB.getAsset(output.attachment.symbol)
                 .then((asset) => {
@@ -187,7 +197,7 @@ function organizeTxOutputs(tx, outputs) {
             output.attachment.issue_index = output.index;
             output.attachment.height = tx.height;
             output.attachment.confirmed_at = tx.confirmed_at;
-            newAvatarAddress(output.attachment, output.attachment.symbol, output.attachment.address);
+            newAvatarAddress(output.attachment);
             return output;
         } else if (output.attachment.type == "asset-cert") {
             return output;
@@ -244,6 +254,19 @@ function organizeTxPreviousOutputs(input) {
                         input.attachment.decimals = asset.decimals;
                         return input;
                     });
+            } else if (previousOutput.attachment.type == "did-issue ") {
+                input.attachment.address = previousOutput.attachment.address;
+                input.attachment.symbol = previousOutput.attachment.symbol;
+                return input;
+            }  else if (previousOutput.attachment.type == "did-transfer") {
+                input.attachment.address = previousOutput.attachment.address;
+                input.attachment.symbol = previousOutput.attachment.symbol;
+                return input;
+            } else if (previousOutput.attachment.type == "asset-cert") {
+                input.attachment.to_did = previousOutput.attachment.to_did;
+                input.attachment.symbol = previousOutput.attachment.symbol;
+                input.attachment.cert = previousOutput.attachment.cert;
+                return input;
             } else {
                 //not handled type of TX
                 Messenger.send('Unknow type', `Unknow output type in block ${previousTx.height}, transaction ${previousTx.hash}, index ${input.previous_output.index}`);
@@ -295,15 +318,21 @@ function newAsset(attachment) {
     return MongoDB.addAsset(attachment);
 }
 
+function secondaryIssue(attachment) {
+    delete attachment.type;
+    delete attachment.description;
+    delete attachment.secondaryissue_threshold;
+    return MongoDB.secondaryIssue(attachment);
+}
+
 function newAvatar(attachment) {
     delete attachment.type;
     return MongoDB.addAvatar(attachment);
 }
 
-function newAvatarAddress(attachment, symbol, address) {
+function newAvatarAddress(attachment) {
     delete attachment.type;
-    delete attachment.symbol;
-    return MongoDB.modifyAvatarAddress(attachment, symbol, address);
+    return MongoDB.modifyAvatarAddress(attachment);
 }
 
 function detectFork(number, hash, forkhead, is_fork) {
