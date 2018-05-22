@@ -286,7 +286,7 @@ function modifyAvatarAddress(avatar) {
             symbol: avatar.symbol
         }, {
             $set: {
-                address: avatar.newaddress
+                address: avatar.address
             },
             $push: {
                 updates: avatar
