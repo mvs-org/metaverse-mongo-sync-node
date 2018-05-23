@@ -165,18 +165,14 @@ function organizeTxOutputs(tx, outputs) {
             output.attachment.issue_index = output.index;
             output.attachment.height = tx.height;
             output.attachment.confirmed_at = tx.confirmed_at;
-            return MongoDB.getAsset(output.attachment.symbol)
-                .then((asset) => {
-                    if(asset == null) {   //New asset
-                        output.attachment.original_quantity = output.attachment.quantity;
-                        output.attachment.updates = [];
-                        newAsset(output.attachment);
-                    } else {    //Secondary issue
-                        //output.attachment.original_quantity = asset.quantity;
-                        secondaryIssue(output.attachment);
-                    }
-                    return output;
-                });
+            if(output.attachment.is_secondaryissue) {
+              secondaryIssue(output.attachment);
+            } else {
+              output.attachment.original_maximum_supply = output.attachment.maximum_supply;
+              output.attachment.updates = [];
+              newAsset(output.attachment);
+            }
+            return output;
         } else if (output.attachment.type == "asset-transfer") {
             return MongoDB.getAsset(output.attachment.symbol)
                 .then((asset) => {
@@ -242,7 +238,7 @@ function organizeTxPreviousOutputs(input) {
                 input.attachment.decimals = 8;
                 return input;
             } else if (previousOutput.attachment.type == "asset-issue") {
-                input.attachment.quantity = previousOutput.attachment.quantity;
+                input.attachment.quantity = previousOutput.attachment.maximum_supply;
                 input.attachment.symbol = previousOutput.attachment.symbol;
                 input.attachment.decimals = previousOutput.attachment.decimals;
                 return input;
