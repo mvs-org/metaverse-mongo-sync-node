@@ -251,7 +251,7 @@ function organizeTxPreviousOutputs(input) {
                         input.attachment.decimals = asset.decimals;
                         return input;
                     });
-            } else if (previousOutput.attachment.type == "did-issue ") {
+            } else if (previousOutput.attachment.type == "did-issue") {
                 input.attachment.address = previousOutput.attachment.address;
                 input.attachment.symbol = previousOutput.attachment.symbol;
                 return input;
