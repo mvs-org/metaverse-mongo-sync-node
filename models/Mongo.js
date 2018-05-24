@@ -431,19 +431,15 @@ function markUnspentOutputFrom(start_height) {
 
 function markOrphanOutputsFrom(height, timestamp = 1) {
     return new Promise((resolve, reject) => {
-        database.collection('output').updateMany({
+        database.collection('output').remove({
             height: {
                 $gt: height
             },
             orphaned_at: 0
-        }, {
-            $set: {
-                orphaned_at: timestamp
-            }
         }, (err, result) => {
             if (err) throw err.message;
             else
-                resolve(result.result.nModified);
+                resolve(result.result.nRemoved);
         });
     });
 }
@@ -516,10 +512,15 @@ function prepareStats(to_block) {
                                             "ETP": -input.value
                                         });
                                     }
-                                    if (input.attachment.symbol && input.attachment.symbol !== "ETP") {
-                                        emit(input.address, {
-                                            [input.attachment.symbol.replace(/\./g, '_')]: -input.attachment.quantity
-                                        });
+                                    switch (input.attachment.type) {
+                                        case 'asset-transfer':
+                                        case 'asset-issue':
+                                            if (input.attachment.symbol && input.attachment.symbol !== "ETP") {
+                                                emit(input.address, {
+                                                    [input.attachment.symbol.replace(/\./g, '_')]: -input.attachment.quantity
+                                                });
+                                            }
+                                            break;
                                     }
                                 } else if (input && input.previous_output.hash == "0000000000000000000000000000000000000000000000000000000000000000")
                                     emit("coinbase", {
@@ -532,10 +533,15 @@ function prepareStats(to_block) {
                                         emit(output.address, {
                                             "ETP": output.value
                                         });
-                                    if (output.attachment.symbol && output.attachment.symbol !== "ETP")
-                                        emit(output.address, {
-                                            [output.attachment.symbol.replace(/\./g, '_')]: output.attachment.quantity
-                                        });
+                                    switch (output.attachment.type) {
+                                        case 'asset-transfer':
+                                        case 'asset-issue':
+                                            if (output.attachment.symbol && output.attachment.symbol !== "ETP")
+                                                emit(output.address, {
+                                                    [output.attachment.symbol.replace(/\./g, '_')]: output.attachment.quantity
+                                                });
+                                            break;
+                                    }
                                 }
                             });
                         },

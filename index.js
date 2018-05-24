@@ -207,7 +207,8 @@ function organizeTxOutputs(tx, outputs) {
                 height: tx.height,
                 hash: tx.hash,
                 block: tx.block,
-                index: output.index
+                index: output.index,
+                type: (output.attachment)?output.attachment.type:'none'
             });
             return output;
         }
@@ -273,7 +274,8 @@ function organizeTxPreviousOutputs(input) {
                     height: previousTx.height,
                     hash: previousTx.hash,
                     block: previousTx.block,
-                    index: input.previous_output.index
+                    index: input.previous_output.index,
+                    type: (previousOutput.attachment)?previousOutput.attachment.type:'none'
                 });
                 return input;
             }
@@ -310,24 +312,18 @@ function organizeTx(tx) {
 }
 
 function newAsset(attachment) {
-    delete attachment.type;
     return MongoDB.addAsset(attachment);
 }
 
 function secondaryIssue(attachment) {
-    delete attachment.type;
-    delete attachment.description;
-    delete attachment.secondaryissue_threshold;
     return MongoDB.secondaryIssue(attachment);
 }
 
 function newAvatar(attachment) {
-    delete attachment.type;
     return MongoDB.addAvatar(attachment);
 }
 
 function newAvatarAddress(attachment) {
-    delete attachment.type;
     return MongoDB.modifyAvatarAddress(attachment);
 }
 
