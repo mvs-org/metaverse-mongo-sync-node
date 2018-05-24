@@ -168,7 +168,7 @@ function organizeTxOutputs(tx, outputs) {
             if(output.attachment.is_secondaryissue) {
               secondaryIssue(output.attachment);
             } else {
-              output.attachment.original_maximum_supply = output.attachment.maximum_supply;
+              output.attachment.original_quantity = output.attachment.quantity;
               output.attachment.updates = [];
               newAsset(output.attachment);
             }
@@ -239,7 +239,7 @@ function organizeTxPreviousOutputs(input) {
                 input.attachment.decimals = 8;
                 return input;
             } else if (previousOutput.attachment.type == "asset-issue") {
-                input.attachment.quantity = previousOutput.attachment.maximum_supply;
+                input.attachment.quantity = previousOutput.attachment.quantity;
                 input.attachment.symbol = previousOutput.attachment.symbol;
                 input.attachment.decimals = previousOutput.attachment.decimals;
                 return input;

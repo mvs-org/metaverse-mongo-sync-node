@@ -263,7 +263,7 @@ function secondaryIssue(asset) {
             symbol: asset.symbol
         }, {
             $inc: {
-                maximum_supply: asset.maximum_supply
+                quantity: asset.quantity
             },
             $push: {
                 updates: asset
