@@ -166,11 +166,14 @@ function organizeTxOutputs(tx, outputs) {
             output.attachment.height = tx.height;
             output.attachment.confirmed_at = tx.confirmed_at;
             if(output.attachment.is_secondaryissue) {
-              secondaryIssue(output.attachment);
+                if(output.attenuation_model_param) {
+                    output.attachment.attenuation_model_param = output.attenuation_model_param;
+                }
+                secondaryIssue(output.attachment);
             } else {
-              output.attachment.original_quantity = output.attachment.quantity;
-              output.attachment.updates = [];
-              newAsset(output.attachment);
+                output.attachment.original_quantity = output.attachment.quantity;
+                output.attachment.updates = [];
+                newAsset(output.attachment);
             }
             return output;
         } else if (output.attachment.type == "asset-transfer") {
