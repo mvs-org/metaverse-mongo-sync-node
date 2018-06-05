@@ -11,6 +11,7 @@ let service = {
     addTx: addTx,
     addBlock: addBlock,
     addAsset: addAsset,
+    secondaryIssue: secondaryIssue,
     addOutputs: addOutputs,
     getAsset: getAsset,
     prepareStats: prepareStats,
@@ -256,17 +257,36 @@ function addAsset(asset) {
     return database.collection('asset').insertOne(asset);
 }
 
+function secondaryIssue(asset) {
+    return new Promise((resolve, reject) => {
+        database.collection('asset').updateMany({
+            symbol: asset.symbol
+        }, {
+            $inc: {
+                quantity: asset.quantity
+            },
+            $push: {
+                updates: asset
+            }
+        }, (err, result) => {
+            if (err) throw err.message;
+            else
+                resolve(result.result.nModified);
+        });
+    });
+}
+
 function addAvatar(avatar) {
     return database.collection('avatar').insertOne(avatar);
 }
 
-function modifyAvatarAddress(avatar, symbol, newaddress) {
+function modifyAvatarAddress(avatar) {
     return new Promise((resolve, reject) => {
         database.collection('avatar').updateMany({
-            symbol: symbol
+            symbol: avatar.symbol
         }, {
             $set: {
-                address: newaddress
+                address: avatar.address
             },
             $push: {
                 updates: avatar
@@ -411,19 +431,15 @@ function markUnspentOutputFrom(start_height) {
 
 function markOrphanOutputsFrom(height, timestamp = 1) {
     return new Promise((resolve, reject) => {
-        database.collection('output').updateMany({
+        database.collection('output').remove({
             height: {
                 $gt: height
             },
             orphaned_at: 0
-        }, {
-            $set: {
-                orphaned_at: timestamp
-            }
         }, (err, result) => {
             if (err) throw err.message;
             else
-                resolve(result.result.nModified);
+                resolve(result.result.nRemoved);
         });
     });
 }

@@ -165,7 +165,16 @@ function organizeTxOutputs(tx, outputs) {
             output.attachment.issue_index = output.index;
             output.attachment.height = tx.height;
             output.attachment.confirmed_at = tx.confirmed_at;
-            newAsset(output.attachment);
+            if(output.attachment.is_secondaryissue) {
+                if(output.attenuation_model_param) {
+                    output.attachment.attenuation_model_param = output.attenuation_model_param;
+                }
+                secondaryIssue(output.attachment);
+            } else {
+                output.attachment.original_quantity = output.attachment.quantity;
+                output.attachment.updates = [];
+                newAsset(output.attachment);
+            }
             return output;
         } else if (output.attachment.type == "asset-transfer") {
             return MongoDB.getAsset(output.attachment.symbol)
@@ -187,7 +196,7 @@ function organizeTxOutputs(tx, outputs) {
             output.attachment.issue_index = output.index;
             output.attachment.height = tx.height;
             output.attachment.confirmed_at = tx.confirmed_at;
-            newAvatarAddress(output.attachment, output.attachment.symbol, output.attachment.address);
+            newAvatarAddress(output.attachment);
             return output;
         } else if (output.attachment.type == "asset-cert") {
             return output;
@@ -201,7 +210,8 @@ function organizeTxOutputs(tx, outputs) {
                 height: tx.height,
                 hash: tx.hash,
                 block: tx.block,
-                index: output.index
+                index: output.index,
+                type: (output.attachment)?output.attachment.type:'none'
             });
             return output;
         }
@@ -244,6 +254,19 @@ function organizeTxPreviousOutputs(input) {
                         input.attachment.decimals = asset.decimals;
                         return input;
                     });
+            } else if (previousOutput.attachment.type == "did-issue") {
+                input.attachment.address = previousOutput.attachment.address;
+                input.attachment.symbol = previousOutput.attachment.symbol;
+                return input;
+            }  else if (previousOutput.attachment.type == "did-transfer") {
+                input.attachment.address = previousOutput.attachment.address;
+                input.attachment.symbol = previousOutput.attachment.symbol;
+                return input;
+            } else if (previousOutput.attachment.type == "asset-cert") {
+                input.attachment.to_did = previousOutput.attachment.to_did;
+                input.attachment.symbol = previousOutput.attachment.symbol;
+                input.attachment.cert = previousOutput.attachment.cert;
+                return input;
             } else {
                 //not handled type of TX
                 Messenger.send('Unknow type', `Unknow output type in block ${previousTx.height}, transaction ${previousTx.hash}, index ${input.previous_output.index}`);
@@ -254,7 +277,8 @@ function organizeTxPreviousOutputs(input) {
                     height: previousTx.height,
                     hash: previousTx.hash,
                     block: previousTx.block,
-                    index: input.previous_output.index
+                    index: input.previous_output.index,
+                    type: (previousOutput.attachment)?previousOutput.attachment.type:'none'
                 });
                 return input;
             }
@@ -291,19 +315,19 @@ function organizeTx(tx) {
 }
 
 function newAsset(attachment) {
-    delete attachment.type;
     return MongoDB.addAsset(attachment);
 }
 
+function secondaryIssue(attachment) {
+    return MongoDB.secondaryIssue(attachment);
+}
+
 function newAvatar(attachment) {
-    delete attachment.type;
     return MongoDB.addAvatar(attachment);
 }
 
-function newAvatarAddress(attachment, symbol, address) {
-    delete attachment.type;
-    delete attachment.symbol;
-    return MongoDB.modifyAvatarAddress(attachment, symbol, address);
+function newAvatarAddress(attachment) {
+    return MongoDB.modifyAvatarAddress(attachment);
 }
 
 function detectFork(number, hash, forkhead, is_fork) {
@@ -370,6 +394,7 @@ MongoDB.init()
             });
         }
         return MongoDB.removeBlock((lastblock) ? lastblock.hash : 0)
+            .then(()=>applyFork(lastblock.number, "S"+Math.random()*1000000))
             .then(() => syncBlocksFrom((lastblock!==undefined) ? lastblock.number : 0));
     })
     .catch((error) => {
