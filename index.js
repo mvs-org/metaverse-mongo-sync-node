@@ -131,7 +131,7 @@ function syncBlock(number) {
                                                         tx: input.previous_output.hash,
                                                         index: input.previous_output.index
                                                     });
-                                                    throw Error("ERR_SPENDING_OUTPUT");
+                                                    // throw Error("ERR_SPENDING_OUTPUT");
                                                 }
                                             });
                                     return {};
@@ -370,7 +370,7 @@ MongoDB.init()
             });
         }
         return MongoDB.removeBlock((lastblock) ? lastblock.hash : 0)
-            .then(() => syncBlocksFrom((lastblock) ? lastblock.number : 0));
+            .then(() => syncBlocksFrom((lastblock!==undefined) ? lastblock.number : 0));
     })
     .catch((error) => {
         console.error(error);
