@@ -182,7 +182,7 @@ function organizeTxOutputs(tx, outputs) {
                     output.attachment.decimals = asset.decimals;
                     return output;
                 });
-        } else if (output.attachment.type == "did-issue") {
+        } else if (output.attachment.type == "did-register") {
             output.attachment.issue_tx = tx.hash;
             output.attachment.issue_index = output.index;
             output.attachment.height = tx.height;
@@ -198,7 +198,7 @@ function organizeTxOutputs(tx, outputs) {
             output.attachment.confirmed_at = tx.confirmed_at;
             newAvatarAddress(output.attachment);
             return output;
-        } else if (output.attachment.type == "asset-cert") {
+        } else if (output.attachment.type == "asset-cert" || output.attachment.type == "mit") {
             return output;
         } else {
             //not handled type of TX
@@ -254,7 +254,7 @@ function organizeTxPreviousOutputs(input) {
                         input.attachment.decimals = asset.decimals;
                         return input;
                     });
-            } else if (previousOutput.attachment.type == "did-issue") {
+            } else if (previousOutput.attachment.type == "did-register") {
                 input.attachment.address = previousOutput.attachment.address;
                 input.attachment.symbol = previousOutput.attachment.symbol;
                 return input;
@@ -266,6 +266,11 @@ function organizeTxPreviousOutputs(input) {
                 input.attachment.to_did = previousOutput.attachment.to_did;
                 input.attachment.symbol = previousOutput.attachment.symbol;
                 input.attachment.cert = previousOutput.attachment.cert;
+                return input;
+            } else if (output.attachment.type == "mit") {
+                input.attachment.to_did = previousOutput.attachment.to_did;
+                input.attachment.symbol = previousOutput.attachment.symbol;
+                input.attachment.status = previousOutput.attachment.status;
                 return input;
             } else {
                 //not handled type of TX
@@ -394,7 +399,7 @@ MongoDB.init()
             });
         }
         return MongoDB.removeBlock((lastblock) ? lastblock.hash : 0)
-            .then(()=>applyFork(lastblock.number, "S"+Math.random()*1000000))
+            .then(() => applyFork((lastblock) ? lastblock.number : 0, "S"+Math.random()*1000000))
             .then(() => syncBlocksFrom((lastblock!==undefined) ? lastblock.number : 0));
     })
     .catch((error) => {
