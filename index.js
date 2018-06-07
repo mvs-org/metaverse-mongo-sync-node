@@ -267,7 +267,7 @@ function organizeTxPreviousOutputs(input) {
                 input.attachment.symbol = previousOutput.attachment.symbol;
                 input.attachment.cert = previousOutput.attachment.cert;
                 return input;
-            } else if (output.attachment.type == "mit") {
+            } else if (previousOutput.attachment.type == "mit") {
                 input.attachment.to_did = previousOutput.attachment.to_did;
                 input.attachment.symbol = previousOutput.attachment.symbol;
                 input.attachment.status = previousOutput.attachment.status;
