@@ -136,6 +136,12 @@ function initOutputs() {
             unique: true
         }),
         database.collection('output').createIndex({
+            type: 1,
+            orphaned_at: 1,
+            spent_tx: 1,
+            height: -1
+        }),
+        database.collection('output').createIndex({
             height: -1,
             address: 1,
             orphaned_at: 1,
@@ -172,6 +178,9 @@ function initTxs() {
         }),
         database.collection('tx').createIndex({
             hash: 1
+        }),
+        database.collection('tx').createIndex({
+            block: 1
         }),
         database.collection('tx').createIndex({
             height: -1
