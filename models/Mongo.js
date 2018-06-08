@@ -136,7 +136,7 @@ function initOutputs() {
             unique: true
         }),
         database.collection('output').createIndex({
-            type: 1,
+            "attachment.type": 1,
             orphaned_at: 1,
             spent_tx: 1,
             height: -1
