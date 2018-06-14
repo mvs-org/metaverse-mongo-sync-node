@@ -1,7 +1,7 @@
 sudo: required
 services:
 - docker
-language: python
+language: node_js
 env:
   secure: MrwDGfOq8B2mVXy3YSGv6GGaq1xXSIxW+RkLnOHxdH9zUtbJLZMcH0uOhOCezM7F6gQMf+81Qo47NIlZ1q/tqNq3dLynlSAYK5xUyxC5JjOhofppEy+l2MoQ/CsEQ7e6skp72cFiotUJYteInwbXAYUW2LG1YqJKsmSH9Nl+rnOa6UQCsxX6+oKf7FpTl4YKVJMD33RTz8JLwmxDjkxN6M/UlaRwKudzJtyf/qWQor3z5joqAhujX3LDyreeM00itDqxGK4H06cBPx2zK945xUNl+TF0zDc640dvuMYNWqAaHXB5vOQ+eZ5PYXdjzN6/B35Nnyhrhp6xCYKArYGk6oN9LYc+aHUnnM7x86BkINgdHebVijEs1SKNsfkMVBzXldkO7LFxqiQfs+y9u7zeX0Siaexwr1QS57GixpDUN+eIqNzmVA9wxGONQqL+hLgyt9l086e1NCKRwQRr2K9oR/+39I24ekq+mwPRUJtbIf+reh41U9Eye7yNxwerBphYwPOF+PyJr7pVtN8C+PJNOPNfoSpZ6IV1iE7/YXbsNKfWG/BHAHAqIzDaupbkSpNyQZILXJaebY7ci2oz6ZksWlT46BZPAlNSHZYnQuo8H2/dNEbrJ6+rQnvIjfr6FF4AFqZFtPoM/U8BLtuOZFIwRKVNMY7GDs1D7v3mNLRqm5o=
 jobs:
@@ -10,8 +10,7 @@ jobs:
     script:
     - docker login -u $DOCKER_USER -p $DOCKER_PASS
     - export REPO=cangr/mvsd-mongo-sync
-    - export TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo
-      $TRAVIS_BRANCH; fi`
+    - export TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo $TRAVIS_BRANCH; fi`
     - docker build -f Dockerfile -t $REPO:$COMMIT .
     - docker tag $REPO:$COMMIT $REPO:$TAG
     - docker tag $REPO:$COMMIT $REPO:travis-$TRAVIS_BUILD_NUMBER
