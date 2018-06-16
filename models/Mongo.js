@@ -15,7 +15,7 @@ let service = {
     addOutputs: addOutputs,
     getAsset: getAsset,
     prepareStats: prepareStats,
-    removeBlock: removeBlock,
+    clearDataFrom: clearDataFrom,
     getLastBlock: getLastBlock,
     getBlock: getBlock,
     getTx: getTx,
@@ -219,14 +219,30 @@ function init() {
         .then(() => initAvatars());
 }
 
-function removeBlock(hash) {
+function removeTxsFrom(start_height) {
     return new Promise((resolve, reject) => {
-        database.collection('block').remove({
-            hash: hash
-        }, (err, block) => {
+        database.collection('tx').remove({
+            height: {
+                $gte: start_height
+            }
+        }, (err, result) => {
             if (err) throw err.message;
             else
-                resolve(block);
+                resolve(result.result.nModified);
+        });
+    });
+}
+
+function removeBlocksFrom(start_height) {
+    return new Promise((resolve, reject) => {
+        database.collection('block').remove({
+            number: {
+                $gte: start_height
+            }
+        }, (err, result) => {
+            if (err) throw err.message;
+            else
+                resolve(result.result.nModified);
         });
     });
 }
@@ -347,11 +363,24 @@ function getBlockByNumber(number) {
 
 function markOrphanFrom(number, forkhead) {
     let now = Math.floor(Date.now() / 1000);
-    return Promise.all([
+    return resetStats()
+        .then(() => Promise.all([
             markOrphanBlocksFrom(number, forkhead),
-            markOrphanOutputsFrom(number, now),
-            markOrphanTxsFrom(number),
+            removeOutputsFrom(number, now),
+            markOrphanTxsFrom(number), ,
+            resetStats(),
             markUnspentOutputFrom(number)
+        ]))
+        .then((results) => results[0]);
+}
+
+function clearDataFrom(height) {
+    console.info('clear from ' + height)
+    return Promise.all([
+            removeBlocksFrom(height),
+            removeTxsFrom(height),
+            resetStats(),
+            removeOutputsFrom(height).then(() => markUnspentOutputFrom(height)),
         ])
         .then((results) => results[0]);
 }
@@ -375,7 +404,7 @@ function markOrphanBlocksFrom(number, forkhead) {
     });
 }
 
-function markOrphanTxsFrom(number) {
+function markOrphanTxsFrom(number, fork) {
     return new Promise((resolve, reject) => {
         database.collection('tx').updateMany({
             height: {
@@ -421,9 +450,8 @@ function markUnspentOutputFrom(start_height) {
     return new Promise((resolve, reject) => {
         database.collection('output').updateMany({
             spent_height: {
-                $gt: start_height
-            },
-            orphaned_at: 0
+                $gte: start_height
+            }
         }, {
             $set: {
                 spent_tx: 0,
@@ -438,13 +466,12 @@ function markUnspentOutputFrom(start_height) {
     });
 }
 
-function markOrphanOutputsFrom(height, timestamp = 1) {
+function removeOutputsFrom(height) {
     return new Promise((resolve, reject) => {
         database.collection('output').remove({
             height: {
-                $gt: height
-            },
-            orphaned_at: 0
+                $gte: height
+            }
         }, (err, result) => {
             if (err) throw err.message;
             else
@@ -498,6 +525,12 @@ function connect(url, name) {
 function getConfig(setting) {
     return database.collection('config').findOne({
         setting: setting
+    });
+}
+
+function resetStats() {
+    return database.collection('config').remove({
+        setting: 'address_balances'
     });
 }
 

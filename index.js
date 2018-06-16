@@ -165,8 +165,8 @@ function organizeTxOutputs(tx, outputs) {
             output.attachment.issue_index = output.index;
             output.attachment.height = tx.height;
             output.attachment.confirmed_at = tx.confirmed_at;
-            if(output.attachment.is_secondaryissue) {
-                if(output.attenuation_model_param) {
+            if (output.attachment.is_secondaryissue) {
+                if (output.attenuation_model_param) {
                     output.attachment.attenuation_model_param = output.attenuation_model_param;
                 }
                 secondaryIssue(output.attachment);
@@ -211,7 +211,7 @@ function organizeTxOutputs(tx, outputs) {
                 hash: tx.hash,
                 block: tx.block,
                 index: output.index,
-                type: (output.attachment)?output.attachment.type:'none'
+                type: (output.attachment) ? output.attachment.type : 'none'
             });
             return output;
         }
@@ -258,7 +258,7 @@ function organizeTxPreviousOutputs(input) {
                 input.attachment.address = previousOutput.attachment.address;
                 input.attachment.symbol = previousOutput.attachment.symbol;
                 return input;
-            }  else if (previousOutput.attachment.type == "did-transfer") {
+            } else if (previousOutput.attachment.type == "did-transfer") {
                 input.attachment.address = previousOutput.attachment.address;
                 input.attachment.symbol = previousOutput.attachment.symbol;
                 return input;
@@ -283,7 +283,7 @@ function organizeTxPreviousOutputs(input) {
                     hash: previousTx.hash,
                     block: previousTx.block,
                     index: input.previous_output.index,
-                    type: (previousOutput.attachment)?previousOutput.attachment.type:'none'
+                    type: (previousOutput.attachment) ? previousOutput.attachment.type : 'none'
                 });
                 return input;
             }
@@ -350,7 +350,7 @@ function detectFork(number, hash, forkhead, is_fork) {
                     });
                 }
                 return Mvsd.getBlock(number - 1)
-                    .then((previousBlock) => detectFork(number - 1, previousBlock.hash, (forkhead) ? forkhead : block.hash, true));
+                    .then((previousBlock) => detectFork(number - 1, previousBlock.header.result.hash, (forkhead) ? forkhead : block.hash, true));
             } else {
                 if (!is_fork)
                     return null;
@@ -398,10 +398,12 @@ MongoDB.init()
                 height: 0
             });
         }
-        return MongoDB.removeBlock((lastblock) ? lastblock.hash : 0)
-            .then(() => applyFork((lastblock) ? lastblock.number : 0, "S"+Math.random()*1000000))
-            .then(() => syncBlocksFrom((lastblock!==undefined) ? lastblock.number : 0));
+        if (lastblock !== undefined)
+            return MongoDB.clearDataFrom(lastblock.number).then(() => lastblock.number);
+        else
+            return Promise.resolve(0);
     })
+    .then((height) => syncBlocksFrom(height))
     .catch((error) => {
         console.error(error);
         Messenger.send('Sync exit', error.message);
