@@ -549,14 +549,14 @@ function prepareStats(to_block) {
                 return database.collection('output').mapReduce(function() {
                             if (this.value)
                                 emit(this.address, {
-                                    "ETP": this.value
+                                    "ETP": this.value * (this.spent_tx==0)?1:-1
                                 });
                             switch (this.attachment.type) {
                                 case 'asset-transfer':
                                 case 'asset-issue':
                                     if (this.attachment.symbol && this.attachment.symbol !== "ETP")
                                         emit(this.address, {
-                                            [this.attachment.symbol.replace(/\./g, '_')]: this.attachment.quantity
+                                            [this.attachment.symbol.replace(/\./g, '_')]: this.attachment.quantity * (this.spent_tx==0)?1:-1
                                         });
                                     break;
                             }
@@ -577,7 +577,6 @@ function prepareStats(to_block) {
                                 reduce: 'address_balances'
                             },
                             query: {
-                                spent_tx: 0,
                                 height: {
                                     $gt: config.latest_block,
                                     $lte: to_block
