@@ -1,6 +1,6 @@
 {
-  "name": "syncer",
-  "version": "0.1.0",
+  "name": "metaverse-mongo-sync",
+  "version": "0.2.1",
   "description": "",
   "main": "index.js",
   "dependencies": {
