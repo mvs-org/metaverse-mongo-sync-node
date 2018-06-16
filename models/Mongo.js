@@ -363,13 +363,14 @@ function getBlockByNumber(number) {
 
 function markOrphanFrom(number, forkhead) {
     let now = Math.floor(Date.now() / 1000);
-    return Promise.all([
+    return resetStats()
+        .then(() => Promise.all([
             markOrphanBlocksFrom(number, forkhead),
             removeOutputsFrom(number, now),
             markOrphanTxsFrom(number), ,
             resetStats(),
             markUnspentOutputFrom(number)
-        ])
+        ]))
         .then((results) => results[0]);
 }
 
