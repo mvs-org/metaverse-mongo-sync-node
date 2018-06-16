@@ -379,6 +379,7 @@ function clearDataFrom(height) {
     return Promise.all([
             removeBlocksFrom(height),
             removeTxsFrom(height),
+            resetStats(),
             removeOutputsFrom(height).then(() => markUnspentOutputFrom(height)),
         ])
         .then((results) => results[0]);
@@ -528,7 +529,9 @@ function getConfig(setting) {
 }
 
 function resetStats() {
-    return database.collection('config').remove({setting: 'address_balances'});
+    return database.collection('config').remove({
+        setting: 'address_balances'
+    });
 }
 
 function prepareStats(to_block) {
