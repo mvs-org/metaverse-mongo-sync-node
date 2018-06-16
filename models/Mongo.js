@@ -222,7 +222,9 @@ function init() {
 function removeTxsFrom(start_height) {
     return new Promise((resolve, reject) => {
         database.collection('tx').remove({
-            height: {$gte: start_height}
+            height: {
+                $gte: start_height
+            }
         }, (err, result) => {
             if (err) throw err.message;
             else
@@ -234,7 +236,9 @@ function removeTxsFrom(start_height) {
 function removeBlocksFrom(start_height) {
     return new Promise((resolve, reject) => {
         database.collection('block').remove({
-            number: {$gte: start_height}
+            number: {
+                $gte: start_height
+            }
         }, (err, result) => {
             if (err) throw err.message;
             else
@@ -362,18 +366,20 @@ function markOrphanFrom(number, forkhead) {
     return Promise.all([
             markOrphanBlocksFrom(number, forkhead),
             removeOutputsFrom(number, now),
-            markOrphanTxsFrom(number),
+            markOrphanTxsFrom(number), ,
+            resetConfig(),
             markUnspentOutputFrom(number)
         ])
         .then((results) => results[0]);
 }
+
 function clearDataFrom(height) {
-    console.info('clear from '+height)
+    console.info('clear from ' + height)
     return Promise.all([
-        removeBlocksFrom(height),
-        removeTxsFrom(height),
-        removeOutputsFrom(height).then(()=>markUnspentOutputFrom(height)),
-    ])
+            removeBlocksFrom(height),
+            removeTxsFrom(height),
+            removeOutputsFrom(height).then(() => markUnspentOutputFrom(height)),
+        ])
         .then((results) => results[0]);
 }
 
@@ -518,6 +524,10 @@ function getConfig(setting) {
     return database.collection('config').findOne({
         setting: setting
     });
+}
+
+function resetConfig() {
+    return database.collection('config').remove({});
 }
 
 function prepareStats(to_block) {
