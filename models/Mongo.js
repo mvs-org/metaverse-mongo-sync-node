@@ -546,20 +546,46 @@ function prepareStats(to_block) {
             if (to_block < config.latest_block)
                 throw Error('ERR_PREPARE_ADDRESS_STATISTICS');
             else {
-                return database.collection('output').mapReduce(function() {
-                            if (this.value)
-                                emit(this.address, {
-                                    "ETP": this.value * ((this.spent_tx==0)?1:-1)
-                                });
-                            switch (this.attachment.type) {
-                                case 'asset-transfer':
-                                case 'asset-issue':
-                                    if (this.attachment.symbol && this.attachment.symbol !== "ETP")
-                                        emit(this.address, {
-                                            [this.attachment.symbol.replace(/\./g, '_')]: this.attachment.quantity * ((this.spent_tx==0)?1:-1)
+                return database.collection('tx').mapReduce(function() {
+                            this.inputs.forEach((input) => {
+                                if (input.address !== "") {
+                                    if (input && input.value) {
+                                        emit(input.address, {
+                                            "ETP": -input.value
                                         });
-                                    break;
-                            }
+                                    }
+                                    switch (input.attachment.type) {
+                                        case 'asset-transfer':
+                                        case 'asset-issue':
+                                            if (input.attachment.symbol && input.attachment.symbol !== "ETP") {
+                                                emit(input.address, {
+                                                    [input.attachment.symbol.replace(/\./g, '_')]: -input.attachment.quantity
+                                                });
+                                            }
+                                            break;
+                                    }
+                                } else if (input && input.previous_output.hash == "0000000000000000000000000000000000000000000000000000000000000000")
+                                    emit("coinbase", {
+                                        "ETP": -this.outputs[0].value
+                                    });
+                            });
+                            this.outputs.forEach((output) => {
+                                if (output && output.address) {
+                                    if (output.value)
+                                        emit(output.address, {
+                                            "ETP": output.value
+                                        });
+                                    switch (output.attachment.type) {
+                                        case 'asset-transfer':
+                                        case 'asset-issue':
+                                            if (output.attachment.symbol && output.attachment.symbol !== "ETP")
+                                                emit(output.address, {
+                                                    [output.attachment.symbol.replace(/\./g, '_')]: output.attachment.quantity
+                                                });
+                                            break;
+                                    }
+                                }
+                            });
                         },
                         function(address, values) {
                             var result = {};
@@ -577,6 +603,7 @@ function prepareStats(to_block) {
                                 reduce: 'address_balances'
                             },
                             query: {
+                                orphan: 0,
                                 height: {
                                     $gt: config.latest_block,
                                     $lte: to_block
