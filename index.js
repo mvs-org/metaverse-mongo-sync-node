@@ -19,12 +19,12 @@ async function syncBlocksFrom(start) {
     while (true) {
         try {
             let orphaned = await syncBlock(start);
-            if(orphaned)
-                start-=orphaned;
+            if (orphaned)
+                start -= orphaned;
             else
                 start++;
-            if(start>=1000&&start%100==0)
-                await MongoDB.prepareStats(start-100);
+            if (start >= 1000 && start % 100 == 0)
+                await MongoDB.prepareStats(start - 100);
         } catch (error) {
             if (error.message == 5101) {
                 console.info('nothing to do. retry');
@@ -45,6 +45,7 @@ async function syncBlocksFrom(start) {
 }
 
 function syncBlock(number) {
+    let inputs = [];
     return Mvsd.getBlock(number)
         .then((block) => {
             let header = block.header.result;
@@ -69,7 +70,33 @@ function syncBlock(number) {
                                     tx.orphan = 0;
                                     tx.block = header.hash;
                                     tx.confirmed_at = header.time_stamp;
-                                    return organizeTx(tx)
+                                    return Promise.all(((tx.outputs) ? tx.outputs : []).map((output) => {
+                                            output.tx = tx.hash;
+                                            output.orphaned_at = 0;
+                                            output.height = tx.height;
+                                            output.spent_tx = 0;
+                                            output.confirmed_at = tx.confirmed_at;
+                                            return output;
+                                        }))
+                                        .then((outputs) => MongoDB.addOutputs(outputs)
+                                            .catch((e) => {
+                                                winston.error('add outputs', {
+                                                    topic: "output",
+                                                    message: e.message,
+                                                    height: tx.height,
+                                                    hash: tx.hash,
+                                                    block: tx.block
+                                                });
+                                                console.error(e);
+                                                return;
+                                            }))
+                                        .then(() => Promise.all(tx.inputs.map((input, index) => {
+                                            input.tx = tx.hash;
+                                            input.index = index;
+                                            inputs.push(input);
+                                            return input;
+                                        })))
+                                        .then(() => organizeTx(tx))
                                         .then((updatedTx) => MongoDB.addTx(updatedTx))
                                         .catch((e) => {
                                             winston.error('add transaction', {
@@ -80,11 +107,37 @@ function syncBlock(number) {
                                                 block: tx.block
                                             });
                                             console.error(e);
+                                            // throw Error(e.message);
                                         });
                                 }))
                                 .then(() => MongoDB.addBlock(header))
+                                .then(() => Promise.all(inputs.map((input) => {
+                                    if (input.previous_output.hash !== "0000000000000000000000000000000000000000000000000000000000000000")
+                                        return MongoDB.markSpentOutput(input.tx, input.index, header.number, input.previous_output.hash, input.previous_output.index)
+                                            .then((result) => {
+                                                if (result)
+                                                    winston.info('output spent', {
+                                                        topic: "output",
+                                                        message: "spent",
+                                                        tx: input.previous_output.hash,
+                                                        index: input.previous_output.index
+                                                    });
+                                                else {
+                                                    winston.error('spending output', {
+                                                        topic: "output",
+                                                        message: "output not spendable",
+                                                        spending_tx: input.tx,
+                                                        spending_index: input.index,
+                                                        tx: input.previous_output.hash,
+                                                        index: input.previous_output.index
+                                                    });
+                                                    // throw Error("ERR_SPENDING_OUTPUT");
+                                                }
+                                            });
+                                    return {};
+                                })))
                                 .then(() => {
-                                    if(number%100000==0)
+                                    if (number % 100000 == 0)
                                         Messenger.send('Sync milestone', `Block #${number} reached`);
                                     winston.info('block added', {
                                         topic: "block",
@@ -93,7 +146,7 @@ function syncBlock(number) {
                                         hash: header.hash
                                     });
                                 })
-                                .then(()=>0);//0 blocks orphan
+                                .then(() => 0); //0 blocks orphan
                         }
                     }));
         });
@@ -106,12 +159,22 @@ function organizeTxOutputs(tx, outputs) {
             output.attachment.decimals = 8;
             return output;
         } else if (output.attachment.type == "asset-issue") {
-            //delete output.attachment.type;
             output.attachment.decimals = output.attachment.decimal_number;
             delete output.attachment.decimal_number;
-            output.attachment.hash = tx.hash;
+            output.attachment.issue_tx = tx.hash;
+            output.attachment.issue_index = output.index;
             output.attachment.height = tx.height;
-            newAsset(output.attachment);
+            output.attachment.confirmed_at = tx.confirmed_at;
+            if(output.attachment.is_secondaryissue) {
+                if(output.attenuation_model_param) {
+                    output.attachment.attenuation_model_param = output.attenuation_model_param;
+                }
+                secondaryIssue(output.attachment);
+            } else {
+                output.attachment.original_quantity = output.attachment.quantity;
+                output.attachment.updates = [];
+                newAsset(output.attachment);
+            }
             return output;
         } else if (output.attachment.type == "asset-transfer") {
             return MongoDB.getAsset(output.attachment.symbol)
@@ -119,17 +182,36 @@ function organizeTxOutputs(tx, outputs) {
                     output.attachment.decimals = asset.decimals;
                     return output;
                 });
+        } else if (output.attachment.type == "did-register") {
+            output.attachment.issue_tx = tx.hash;
+            output.attachment.issue_index = output.index;
+            output.attachment.height = tx.height;
+            output.attachment.original_address = output.attachment.address;
+            output.attachment.updates = [];
+            output.attachment.confirmed_at = tx.confirmed_at;
+            newAvatar(output.attachment);
+            return output;
+        } else if (output.attachment.type == "did-transfer") {
+            output.attachment.issue_tx = tx.hash;
+            output.attachment.issue_index = output.index;
+            output.attachment.height = tx.height;
+            output.attachment.confirmed_at = tx.confirmed_at;
+            newAvatarAddress(output.attachment);
+            return output;
+        } else if (output.attachment.type == "asset-cert" || output.attachment.type == "mit") {
+            return output;
         } else {
             //not handled type of TX
             Messenger.send('Unknow type', `Unknow output type in block ${tx.height}, transaction ${tx.hash}, index ${output.index}`);
             console.log('Unknown output type in blocks %i, transaction %i, index %i', tx.height, tx.hash, output.index);
-            winston.error('unknow type', {
+            winston.warn('unknow type', {
                 topic: "transaction",
                 message: "unknown output type",
                 height: tx.height,
                 hash: tx.hash,
                 block: tx.block,
-                index: output.index
+                index: output.index,
+                type: (output.attachment)?output.attachment.type:'none'
             });
             return output;
         }
@@ -138,10 +220,10 @@ function organizeTxOutputs(tx, outputs) {
 
 function organizeTxPreviousOutputs(input) {
     return MongoDB.getTx(input.previous_output.hash)
-        .then((previousTx)=>{
-            if(previousTx)
+        .then((previousTx) => {
+            if (previousTx)
                 return previousTx;
-            else{
+            else {
                 winston.info('transaction load', {
                     topic: "transaction",
                     message: "alternative load from mvsd",
@@ -151,7 +233,6 @@ function organizeTxPreviousOutputs(input) {
             }
         })
         .then((previousTx) => {
-
             var previousOutput = previousTx.outputs[input.previous_output.index];
             input.attachment = {};
             input.value = previousOutput.value;
@@ -173,17 +254,36 @@ function organizeTxPreviousOutputs(input) {
                         input.attachment.decimals = asset.decimals;
                         return input;
                     });
+            } else if (previousOutput.attachment.type == "did-register") {
+                input.attachment.address = previousOutput.attachment.address;
+                input.attachment.symbol = previousOutput.attachment.symbol;
+                return input;
+            }  else if (previousOutput.attachment.type == "did-transfer") {
+                input.attachment.address = previousOutput.attachment.address;
+                input.attachment.symbol = previousOutput.attachment.symbol;
+                return input;
+            } else if (previousOutput.attachment.type == "asset-cert") {
+                input.attachment.to_did = previousOutput.attachment.to_did;
+                input.attachment.symbol = previousOutput.attachment.symbol;
+                input.attachment.cert = previousOutput.attachment.cert;
+                return input;
+            } else if (previousOutput.attachment.type == "mit") {
+                input.attachment.to_did = previousOutput.attachment.to_did;
+                input.attachment.symbol = previousOutput.attachment.symbol;
+                input.attachment.status = previousOutput.attachment.status;
+                return input;
             } else {
                 //not handled type of TX
                 Messenger.send('Unknow type', `Unknow output type in block ${previousTx.height}, transaction ${previousTx.hash}, index ${input.previous_output.index}`);
                 console.log('Unknown output type in blocks %i, transaction %i, index %i', previousTx.hash, previousTx.height, input.previous_output.index);
-                winston.error('unknow type', {
+                winston.warn('unknow type', {
                     topic: "transaction",
                     message: "unknown output type",
                     height: previousTx.height,
                     hash: previousTx.hash,
                     block: previousTx.block,
-                    index: input.previous_output.index
+                    index: input.previous_output.index,
+                    type: (previousOutput.attachment)?previousOutput.attachment.type:'none'
                 });
                 return input;
             }
@@ -219,8 +319,20 @@ function organizeTx(tx) {
         });
 }
 
-function newAsset(output) {
-    return MongoDB.addAsset(output);
+function newAsset(attachment) {
+    return MongoDB.addAsset(attachment);
+}
+
+function secondaryIssue(attachment) {
+    return MongoDB.secondaryIssue(attachment);
+}
+
+function newAvatar(attachment) {
+    return MongoDB.addAvatar(attachment);
+}
+
+function newAvatarAddress(attachment) {
+    return MongoDB.modifyAvatarAddress(attachment);
 }
 
 function detectFork(number, hash, forkhead, is_fork) {
@@ -237,8 +349,8 @@ function detectFork(number, hash, forkhead, is_fork) {
                         block: block.hash
                     });
                 }
-    //            return MongoDB.getBlock(hash)
-                    return detectFork(number - 1, block.previous_block_hash, (forkhead) ? forkhead : block.hash, true);
+                return Mvsd.getBlock(number - 1)
+                    .then((previousBlock) => detectFork(number - 1, previousBlock.hash, (forkhead) ? forkhead : block.hash, true));
             } else {
                 if (!is_fork)
                     return null;
@@ -273,7 +385,7 @@ MongoDB.init()
     .then(() => MongoDB.getLastBlock())
     .then((lastblock) => {
         if (lastblock) {
-            Messenger.send('Sync start','sync starting from block '+lastblock.number);
+            Messenger.send('Sync start', 'sync starting from block ' + lastblock.number);
             winston.info('sync starting', {
                 topic: "sync",
                 message: "continue",
@@ -287,11 +399,12 @@ MongoDB.init()
             });
         }
         return MongoDB.removeBlock((lastblock) ? lastblock.hash : 0)
-            .then(() => syncBlocksFrom((lastblock) ? lastblock.number : 0));
+            .then(() => applyFork((lastblock) ? lastblock.number : 0, "S"+Math.random()*1000000))
+            .then(() => syncBlocksFrom((lastblock!==undefined) ? lastblock.number : 0));
     })
     .catch((error) => {
         console.error(error);
-        Messenger.send('Sync exit',error.message);
+        Messenger.send('Sync exit', error.message);
         winston.error('sync error', {
             topic: "sync",
             message: error.message,
