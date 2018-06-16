@@ -235,6 +235,7 @@ function organizeTxPreviousOutputs(input) {
         .then((previousTx) => {
             var previousOutput = previousTx.outputs[input.previous_output.index];
             input.attachment = {};
+            input.attachment.type = previousOutput.attachment.type;
             input.value = previousOutput.value;
             input.address = previousOutput.address;
             if (previousOutput.attachment.type == "etp" || previousOutput.attachment.type == "message") {
