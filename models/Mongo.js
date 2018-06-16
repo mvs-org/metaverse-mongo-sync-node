@@ -368,9 +368,9 @@ function markOrphanBlocksFrom(number, forkhead) {
                 orphan: forkhead
             }
         }, (err, result) => {
-            if (err) throw err.message;
+            if (err) throw Error(err.message);
             else
-                setTimeout(() => resolve(result.result.nModified), 10000);
+                resolve(result.result.nModified);
         });
     });
 }
@@ -387,9 +387,9 @@ function markOrphanTxsFrom(number) {
                 orphan: 1
             }
         }, (err, result) => {
-            if (err) throw err.message;
+            if (err) throw Error(err.message);
             else
-                setTimeout(() => resolve(result.result.nModified), 10000);
+                resolve(result.result.nModified);
         });
     });
 }
