@@ -367,7 +367,7 @@ function markOrphanFrom(number, forkhead) {
             markOrphanBlocksFrom(number, forkhead),
             removeOutputsFrom(number, now),
             markOrphanTxsFrom(number), ,
-            resetConfig(),
+            resetStats(),
             markUnspentOutputFrom(number)
         ])
         .then((results) => results[0]);
@@ -526,8 +526,8 @@ function getConfig(setting) {
     });
 }
 
-function resetConfig() {
-    return database.collection('config').remove({});
+function resetStats() {
+    return database.collection('config').remove({setting: 'address_balances'});
 }
 
 function prepareStats(to_block) {
