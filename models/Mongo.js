@@ -375,7 +375,7 @@ function markOrphanFrom(number, forkhead) {
 }
 
 function clearDataFrom(height) {
-    console.info('clear from ' + height)
+    console.info('clear from ' + height);
     return Promise.all([
             removeBlocksFrom(height),
             removeTxsFrom(height),
@@ -534,13 +534,22 @@ function resetStats() {
     });
 }
 
+function resetAddressBalances() {
+    return database.collection('address_balances').remove({});
+}
+
 function prepareStats(to_block) {
     return getConfig('address_balances')
         .then((config) => {
-            if (!config)
+            if (!config) {
                 config = {
                     setting: 'address_balances'
                 };
+                return resetAddressBalances().then(() => config);
+            }
+            return config;
+        })
+        .then(config => {
             if (!config.latest_block)
                 config.latest_block = -1;
             if (to_block < config.latest_block)
