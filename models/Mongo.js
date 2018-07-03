@@ -40,7 +40,7 @@ function initPools() {
                         name: "uupool",
                         url: 'http://www.uupool.cn',
                         origin: 'China',
-                        addresses: ['M97VaaTYnKtGzfMFrreitiYoy84Eueb16N']
+                    addresses: ['M97VaaTYnKtGzfMFrreitiYoy84Eueb16N', 'MUiW2CViWLQBg2TQDsRt1Pcj7KyrdqFPj7']
                     },
                     {
                         name: "xinyuanjie",
