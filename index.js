@@ -34,19 +34,24 @@ async function syncBlocksFrom(start) {
                 Mvsd.getMemoryPool()
                     .then(memorypool => {
                         console.info(`found ${memorypool.length} transactions in memory pool`);
-                        memorypool.forEach(async tx => {
-                            tx.orphan=-1;
-                            await organizeTx(tx)
-                                .then((updatedTx) => MongoDB.addTx(updatedTx))
-                                .catch((e) => {
-                                    winston.error('add transaction', {
-                                        topic: "transaction",
-                                        message: e.message,
-                                        height: tx.height,
-                                        hash: tx.hash,
-                                        block: -1
-                                    });
-                                    console.error(e);
+                        memorypool.forEach(tx => {
+                            MongoDB.existsTx(tx.hash)
+                                .then(async exists => {
+                                    if (!exists) {
+                                        tx.orphan = -1;
+                                        await organizeTx(tx)
+                                            .then((updatedTx) => MongoDB.addTx(updatedTx))
+                                            .catch((e) => {
+                                                winston.error('add transaction', {
+                                                    topic: "transaction",
+                                                    message: e.message,
+                                                    height: tx.height,
+                                                    hash: tx.hash,
+                                                    block: -1
+                                                });
+                                                console.error(e);
+                                            });
+                                    }
                                 });
                         });
                     });

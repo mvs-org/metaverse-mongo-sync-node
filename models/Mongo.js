@@ -19,6 +19,7 @@ let service = {
     getLastBlock: getLastBlock,
     getBlock: getBlock,
     getTx: getTx,
+    existsTx: existsTx,
     markOrphanFrom: markOrphanFrom,
     markSpentOutput: markSpentOutput,
     getBlockByNumber: getBlockByNumber,
@@ -335,6 +336,14 @@ function getBlock(hash) {
         });
     });
 }
+
+function existsTx(hash) {
+    return getTx(hash)
+        .then(tx=>{
+            return (tx) ? true : false;
+        });
+}
+
 
 function getTx(hash) {
     return new Promise((resolve, reject) => {
