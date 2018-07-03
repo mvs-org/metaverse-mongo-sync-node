@@ -276,7 +276,7 @@ function addOutputs(outputs) {
 }
 
 function addTx(tx) {
-    return database.collection('tx').update({hash: tx.hash, block: tx.block},tx, {upsert: true});
+    return database.collection('tx').update({hash: tx.hash, "$or": [{block: tx.block}, {block: { $exists: false }}]},tx, {upsert: true});
 }
 
 function addAsset(asset) {
