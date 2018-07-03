@@ -15,6 +15,8 @@ if (log_config.logstash.enabled) {
     });
 }
 
+const INTERVAL_BLOCK_RETRY = 5000;
+
 async function syncBlocksFrom(start) {
     while (true) {
         try {
@@ -27,8 +29,28 @@ async function syncBlocksFrom(start) {
                 await MongoDB.prepareStats(start - 100);
         } catch (error) {
             if (error.message == 5101) {
-                console.info('nothing to do. retry');
-                await wait(5000);
+                console.info('no more block found. retry in ' + INTERVAL_BLOCK_RETRY + 'ms');
+                console.info('check mempool transactions');
+                Mvsd.getMemoryPool()
+                    .then(memorypool => {
+                        console.info(`found ${memorypool.length} transactions in memory pool`);
+                        memorypool.forEach(async tx => {
+                            tx.orphan=-1;
+                            await organizeTx(tx)
+                                .then((updatedTx) => MongoDB.addTx(updatedTx))
+                                .catch((e) => {
+                                    winston.error('add transaction', {
+                                        topic: "transaction",
+                                        message: e.message,
+                                        height: tx.height,
+                                        hash: tx.hash,
+                                        block: -1
+                                    });
+                                    console.error(e);
+                                });
+                        });
+                    });
+                await wait(INTERVAL_BLOCK_RETRY);
             } else {
                 console.error(error);
                 winston.error('sync block error', {
@@ -107,7 +129,6 @@ function syncBlock(number) {
                                                 block: tx.block
                                             });
                                             console.error(e);
-                                            // throw Error(e.message);
                                         });
                                 }))
                                 .then(() => MongoDB.addBlock(header))

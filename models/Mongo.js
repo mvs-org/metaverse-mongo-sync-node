@@ -275,7 +275,7 @@ function addOutputs(outputs) {
 }
 
 function addTx(tx) {
-    return database.collection('tx').insertOne(tx);
+    return database.collection('tx').update({hash: tx.hash, block: tx.block},tx, {upsert: true});
 }
 
 function addAsset(asset) {
