@@ -39,6 +39,7 @@ async function syncBlocksFrom(start) {
                                 .then(async exists => {
                                     if (!exists) {
                                         tx.orphan = -1;
+                                        tx.received_at = Math.floor(Date.now() / 1000);
                                         await organizeTx(tx)
                                             .then((updatedTx) => MongoDB.addTx(updatedTx))
                                             .catch((e) => {
