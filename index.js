@@ -15,6 +15,8 @@ if (log_config.logstash.enabled) {
     });
 }
 
+const INTERVAL_BLOCK_RETRY = 5000;
+
 async function syncBlocksFrom(start) {
     while (true) {
         try {
@@ -27,8 +29,34 @@ async function syncBlocksFrom(start) {
                 await MongoDB.prepareStats(start - 100);
         } catch (error) {
             if (error.message == 5101) {
-                console.info('nothing to do. retry');
-                await wait(5000);
+                console.info('no more block found. retry in ' + INTERVAL_BLOCK_RETRY + 'ms');
+                console.info('check mempool transactions');
+                Mvsd.getMemoryPool()
+                    .then(memorypool => {
+                        console.info(`found ${memorypool.length} transactions in memory pool`);
+                        memorypool.forEach(tx => {
+                            MongoDB.existsTx(tx.hash)
+                                .then(async exists => {
+                                    if (!exists) {
+                                        tx.orphan = -1;
+                                        tx.received_at = Math.floor(Date.now() / 1000);
+                                        await organizeTx(tx, false)
+                                            .then((updatedTx) => MongoDB.addTx(updatedTx))
+                                            .catch((e) => {
+                                                winston.error('add transaction', {
+                                                    topic: "transaction",
+                                                    message: e.message,
+                                                    height: tx.height,
+                                                    hash: tx.hash,
+                                                    block: -1
+                                                });
+                                                console.error(e);
+                                            });
+                                    }
+                                });
+                        });
+                    });
+                await wait(INTERVAL_BLOCK_RETRY);
             } else {
                 console.error(error);
                 winston.error('sync block error', {
@@ -96,7 +124,7 @@ function syncBlock(number) {
                                             inputs.push(input);
                                             return input;
                                         })))
-                                        .then(() => organizeTx(tx))
+                                    .then(() => organizeTx(tx, true))
                                         .then((updatedTx) => MongoDB.addTx(updatedTx))
                                         .catch((e) => {
                                             winston.error('add transaction', {
@@ -107,7 +135,6 @@ function syncBlock(number) {
                                                 block: tx.block
                                             });
                                             console.error(e);
-                                            // throw Error(e.message);
                                         });
                                 }))
                                 .then(() => MongoDB.addBlock(header))
@@ -152,13 +179,15 @@ function syncBlock(number) {
         });
 }
 
-function organizeTxOutputs(tx, outputs) {
+function organizeTxOutputs(tx, outputs, add_entities) {
     return Promise.all(outputs.map((output) => {
-        if (output.attachment.type == "etp" || output.attachment.type == "message") {
+        switch(output.attachment.type){
+        case "etp":
+        case "message":
             output.attachment.symbol = "ETP";
             output.attachment.decimals = 8;
             return output;
-        } else if (output.attachment.type == "asset-issue") {
+        case "asset-issue":
             output.attachment.decimals = output.attachment.decimal_number;
             delete output.attachment.decimal_number;
             output.attachment.issue_tx = tx.hash;
@@ -169,38 +198,43 @@ function organizeTxOutputs(tx, outputs) {
                 if (output.attenuation_model_param) {
                     output.attachment.attenuation_model_param = output.attenuation_model_param;
                 }
-                secondaryIssue(output.attachment);
+                if(add_entities)
+                    secondaryIssue(output.attachment);
             } else {
                 output.attachment.original_quantity = output.attachment.quantity;
                 output.attachment.updates = [];
-                newAsset(output.attachment);
+                if(add_entities)
+                    newAsset(output.attachment);
             }
             return output;
-        } else if (output.attachment.type == "asset-transfer") {
+        case "asset-transfer":
             return MongoDB.getAsset(output.attachment.symbol)
                 .then((asset) => {
                     output.attachment.decimals = asset.decimals;
                     return output;
                 });
-        } else if (output.attachment.type == "did-register") {
+        case "did-register":
             output.attachment.issue_tx = tx.hash;
             output.attachment.issue_index = output.index;
             output.attachment.height = tx.height;
             output.attachment.original_address = output.attachment.address;
             output.attachment.updates = [];
             output.attachment.confirmed_at = tx.confirmed_at;
-            newAvatar(output.attachment);
+            if(add_entities)
+                newAvatar(output.attachment);
             return output;
-        } else if (output.attachment.type == "did-transfer") {
+        case "did-transfer":
             output.attachment.issue_tx = tx.hash;
             output.attachment.issue_index = output.index;
             output.attachment.height = tx.height;
             output.attachment.confirmed_at = tx.confirmed_at;
-            newAvatarAddress(output.attachment);
+            if(add_entities)
+                newAvatarAddress(output.attachment);
             return output;
-        } else if (output.attachment.type == "asset-cert" || output.attachment.type == "mit") {
+        case "asset-cert":
+        case "mit":
             return output;
-        } else {
+        default:
             //not handled type of TX
             Messenger.send('Unknow type', `Unknow output type in block ${tx.height}, transaction ${tx.hash}, index ${output.index}`);
             console.log('Unknown output type in blocks %i, transaction %i, index %i', tx.height, tx.hash, output.index);
@@ -235,18 +269,21 @@ function organizeTxPreviousOutputs(input) {
         .then((previousTx) => {
             var previousOutput = previousTx.outputs[input.previous_output.index];
             input.attachment = {};
+            input.attachment.type = previousOutput.attachment.type;
             input.value = previousOutput.value;
             input.address = previousOutput.address;
-            if (previousOutput.attachment.type == "etp" || previousOutput.attachment.type == "message") {
+            switch(previousOutput.attachment.type){
+            case "etp":
+            case "message":
                 input.attachment.symbol = "ETP";
                 input.attachment.decimals = 8;
                 return input;
-            } else if (previousOutput.attachment.type == "asset-issue") {
+            case "asset-issue":
                 input.attachment.quantity = previousOutput.attachment.quantity;
                 input.attachment.symbol = previousOutput.attachment.symbol;
                 input.attachment.decimals = previousOutput.attachment.decimals;
                 return input;
-            } else if (previousOutput.attachment.type == "asset-transfer") {
+            case "asset-transfer":
                 return MongoDB.getAsset(previousOutput.attachment.symbol)
                     .then((asset) => {
                         input.attachment.quantity = previousOutput.attachment.quantity;
@@ -254,25 +291,21 @@ function organizeTxPreviousOutputs(input) {
                         input.attachment.decimals = asset.decimals;
                         return input;
                     });
-            } else if (previousOutput.attachment.type == "did-register") {
+            case "did-transfer":
                 input.attachment.address = previousOutput.attachment.address;
                 input.attachment.symbol = previousOutput.attachment.symbol;
                 return input;
-            } else if (previousOutput.attachment.type == "did-transfer") {
-                input.attachment.address = previousOutput.attachment.address;
-                input.attachment.symbol = previousOutput.attachment.symbol;
-                return input;
-            } else if (previousOutput.attachment.type == "asset-cert") {
+            case "asset-cert":
                 input.attachment.to_did = previousOutput.attachment.to_did;
                 input.attachment.symbol = previousOutput.attachment.symbol;
                 input.attachment.cert = previousOutput.attachment.cert;
                 return input;
-            } else if (previousOutput.attachment.type == "mit") {
+            case "mit":
                 input.attachment.to_did = previousOutput.attachment.to_did;
                 input.attachment.symbol = previousOutput.attachment.symbol;
                 input.attachment.status = previousOutput.attachment.status;
                 return input;
-            } else {
+            default:
                 //not handled type of TX
                 Messenger.send('Unknow type', `Unknow output type in block ${previousTx.height}, transaction ${previousTx.hash}, index ${input.previous_output.index}`);
                 console.log('Unknown output type in blocks %i, transaction %i, index %i', previousTx.hash, previousTx.height, input.previous_output.index);
@@ -305,9 +338,9 @@ function organizeTxInputs(inputs) {
     }));
 }
 
-function organizeTx(tx) {
+function organizeTx(tx, add_entities) {
     return Promise.all([
-            organizeTxOutputs(tx, tx.outputs),
+        organizeTxOutputs(tx, tx.outputs, add_entities),
             organizeTxInputs(tx.inputs),
             Mvsd.getTx(tx.hash, false).then((res) => res.transaction.raw)
         ])
