@@ -40,7 +40,7 @@ async function syncBlocksFrom(start) {
                                     if (!exists) {
                                         tx.orphan = -1;
                                         tx.received_at = Math.floor(Date.now() / 1000);
-                                        await organizeTx(tx)
+                                        await organizeTx(tx, false)
                                             .then((updatedTx) => MongoDB.addTx(updatedTx))
                                             .catch((e) => {
                                                 winston.error('add transaction', {
@@ -124,7 +124,7 @@ function syncBlock(number) {
                                             inputs.push(input);
                                             return input;
                                         })))
-                                        .then(() => organizeTx(tx))
+                                    .then(() => organizeTx(tx, true))
                                         .then((updatedTx) => MongoDB.addTx(updatedTx))
                                         .catch((e) => {
                                             winston.error('add transaction', {
@@ -272,16 +272,18 @@ function organizeTxPreviousOutputs(input) {
             input.attachment.type = previousOutput.attachment.type;
             input.value = previousOutput.value;
             input.address = previousOutput.address;
-            if (previousOutput.attachment.type == "etp" || previousOutput.attachment.type == "message") {
+            switch(previousOutput.attachment.type){
+            case "etp":
+            case "message":
                 input.attachment.symbol = "ETP";
                 input.attachment.decimals = 8;
                 return input;
-            } else if (previousOutput.attachment.type == "asset-issue") {
+            case "asset-issue":
                 input.attachment.quantity = previousOutput.attachment.quantity;
                 input.attachment.symbol = previousOutput.attachment.symbol;
                 input.attachment.decimals = previousOutput.attachment.decimals;
                 return input;
-            } else if (previousOutput.attachment.type == "asset-transfer") {
+            case "asset-transfer":
                 return MongoDB.getAsset(previousOutput.attachment.symbol)
                     .then((asset) => {
                         input.attachment.quantity = previousOutput.attachment.quantity;
@@ -289,25 +291,21 @@ function organizeTxPreviousOutputs(input) {
                         input.attachment.decimals = asset.decimals;
                         return input;
                     });
-            } else if (previousOutput.attachment.type == "did-register") {
+            case "did-transfer":
                 input.attachment.address = previousOutput.attachment.address;
                 input.attachment.symbol = previousOutput.attachment.symbol;
                 return input;
-            } else if (previousOutput.attachment.type == "did-transfer") {
-                input.attachment.address = previousOutput.attachment.address;
-                input.attachment.symbol = previousOutput.attachment.symbol;
-                return input;
-            } else if (previousOutput.attachment.type == "asset-cert") {
+            case "asset-cert":
                 input.attachment.to_did = previousOutput.attachment.to_did;
                 input.attachment.symbol = previousOutput.attachment.symbol;
                 input.attachment.cert = previousOutput.attachment.cert;
                 return input;
-            } else if (previousOutput.attachment.type == "mit") {
+            case "mit":
                 input.attachment.to_did = previousOutput.attachment.to_did;
                 input.attachment.symbol = previousOutput.attachment.symbol;
                 input.attachment.status = previousOutput.attachment.status;
                 return input;
-            } else {
+            default:
                 //not handled type of TX
                 Messenger.send('Unknow type', `Unknow output type in block ${previousTx.height}, transaction ${previousTx.hash}, index ${input.previous_output.index}`);
                 console.log('Unknown output type in blocks %i, transaction %i, index %i', previousTx.hash, previousTx.height, input.previous_output.index);
@@ -340,9 +338,9 @@ function organizeTxInputs(inputs) {
     }));
 }
 
-function organizeTx(tx) {
+function organizeTx(tx, add_entities) {
     return Promise.all([
-            organizeTxOutputs(tx, tx.outputs),
+        organizeTxOutputs(tx, tx.outputs, add_entities),
             organizeTxInputs(tx.inputs),
             Mvsd.getTx(tx.hash, false).then((res) => res.transaction.raw)
         ])
