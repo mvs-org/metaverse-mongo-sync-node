@@ -179,13 +179,15 @@ function syncBlock(number) {
         });
 }
 
-function organizeTxOutputs(tx, outputs) {
+function organizeTxOutputs(tx, outputs, add_entities) {
     return Promise.all(outputs.map((output) => {
-        if (output.attachment.type == "etp" || output.attachment.type == "message") {
+        switch(output.attachment.type){
+        case "etp":
+        case "message":
             output.attachment.symbol = "ETP";
             output.attachment.decimals = 8;
             return output;
-        } else if (output.attachment.type == "asset-issue") {
+        case "asset-issue":
             output.attachment.decimals = output.attachment.decimal_number;
             delete output.attachment.decimal_number;
             output.attachment.issue_tx = tx.hash;
@@ -196,38 +198,43 @@ function organizeTxOutputs(tx, outputs) {
                 if (output.attenuation_model_param) {
                     output.attachment.attenuation_model_param = output.attenuation_model_param;
                 }
-                secondaryIssue(output.attachment);
+                if(add_entities)
+                    secondaryIssue(output.attachment);
             } else {
                 output.attachment.original_quantity = output.attachment.quantity;
                 output.attachment.updates = [];
-                newAsset(output.attachment);
+                if(add_entities)
+                    newAsset(output.attachment);
             }
             return output;
-        } else if (output.attachment.type == "asset-transfer") {
+        case "asset-transfer":
             return MongoDB.getAsset(output.attachment.symbol)
                 .then((asset) => {
                     output.attachment.decimals = asset.decimals;
                     return output;
                 });
-        } else if (output.attachment.type == "did-register") {
+        case "did-register":
             output.attachment.issue_tx = tx.hash;
             output.attachment.issue_index = output.index;
             output.attachment.height = tx.height;
             output.attachment.original_address = output.attachment.address;
             output.attachment.updates = [];
             output.attachment.confirmed_at = tx.confirmed_at;
-            newAvatar(output.attachment);
+            if(add_entities)
+                newAvatar(output.attachment);
             return output;
-        } else if (output.attachment.type == "did-transfer") {
+        case "did-transfer":
             output.attachment.issue_tx = tx.hash;
             output.attachment.issue_index = output.index;
             output.attachment.height = tx.height;
             output.attachment.confirmed_at = tx.confirmed_at;
-            newAvatarAddress(output.attachment);
+            if(add_entities)
+                newAvatarAddress(output.attachment);
             return output;
-        } else if (output.attachment.type == "asset-cert" || output.attachment.type == "mit") {
+        case "asset-cert":
+        case "mit":
             return output;
-        } else {
+        default:
             //not handled type of TX
             Messenger.send('Unknow type', `Unknow output type in block ${tx.height}, transaction ${tx.hash}, index ${output.index}`);
             console.log('Unknown output type in blocks %i, transaction %i, index %i', tx.height, tx.hash, output.index);
