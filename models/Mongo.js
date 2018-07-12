@@ -41,7 +41,7 @@ function initPools() {
                         name: "uupool",
                         url: 'http://www.uupool.cn',
                         origin: 'China',
-                    addresses: ['M97VaaTYnKtGzfMFrreitiYoy84Eueb16N', 'MUiW2CViWLQBg2TQDsRt1Pcj7KyrdqFPj7']
+                        addresses: ['M97VaaTYnKtGzfMFrreitiYoy84Eueb16N', 'MUiW2CViWLQBg2TQDsRt1Pcj7KyrdqFPj7']
                     },
                     {
                         name: "xinyuanjie",
@@ -96,6 +96,12 @@ function initPools() {
                         url: 'http://cryptopoolpond.com/#/',
                         origin: 'US/Europe',
                         addresses: ['MPVYH9GQGZkJc4rZ4ZEx9bnV1mpa3M4whw']
+                    },
+                    {
+                        name: "europool",
+                        url: 'https://etp.europool.me/',
+                        origin: 'Europe',
+                        addresses: ['MAt2UVEvSN6SrRyjwpJKHqXnXqXC3wWnRK']
                     },
                     {
                         name: "sandpool.org",
@@ -276,7 +282,18 @@ function addOutputs(outputs) {
 }
 
 function addTx(tx) {
-    return database.collection('tx').update({hash: tx.hash, "$or": [{block: tx.block}, {block: { $exists: false }}]},tx, {upsert: true});
+    return database.collection('tx').update({
+        hash: tx.hash,
+        "$or": [{
+            block: tx.block
+        }, {
+            block: {
+                $exists: false
+            }
+        }]
+    }, tx, {
+        upsert: true
+    });
 }
 
 function addAsset(asset) {
@@ -339,7 +356,7 @@ function getBlock(hash) {
 
 function existsTx(hash) {
     return getTx(hash)
-        .then(tx=>{
+        .then(tx => {
             return (tx) ? true : false;
         });
 }
