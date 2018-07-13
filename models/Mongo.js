@@ -104,6 +104,12 @@ function initPools() {
                         addresses: ['MAt2UVEvSN6SrRyjwpJKHqXnXqXC3wWnRK']
                     },
                     {
+                        name: "chileminers",
+                        url: "http://etp.chileminers.cl",
+                        origin: "US",
+                        addresses: ["MJjMh7F2ZuNcEQvrEK2PoMwCyqX7vJrqTV"]
+                    },
+                    {
                         name: "sandpool.org",
                         url: 'http:/etp.sandpool.org',
                         origin: 'Europe',
