@@ -399,7 +399,7 @@ function markOrphanFrom(number, forkhead) {
         .then(() => Promise.all([
             markOrphanBlocksFrom(number, forkhead),
             removeOutputsFrom(number, now),
-            markOrphanTxsFrom(number), ,
+            markOrphanTxsFrom(number),
             resetStats(),
             markUnspentOutputFrom(number)
         ]))
@@ -502,7 +502,7 @@ function removeOutputsFrom(height) {
     return new Promise((resolve, reject) => {
         database.collection('output').remove({
             height: {
-                $gte: height
+                $gt: height
             }
         }, (err, result) => {
             if (err) throw err.message;
