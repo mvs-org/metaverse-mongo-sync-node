@@ -540,6 +540,7 @@ function connect(url, name) {
     return new Promise((resolve, reject) => {
         MongoClient.connect(url, {
             w: 1,
+            connectTimeoutMS: 900000,
             j: false
         }, (err, con) => {
             if (err) {
