@@ -419,7 +419,7 @@ MongoDB.init()
     .then((lastblock) => {
         //Check height for status updates
         setInterval(()=>{
-            MongoDb.getLastBlock().then(block=>console.info("current block height: %i", block.number));
+            MongoDB.getLastBlock().then(block=>console.info("current block height: %i", block.number));
         }, 10000);
         if (lastblock) {
             Messenger.send('Sync start', 'sync starting from block ' + lastblock.number);
