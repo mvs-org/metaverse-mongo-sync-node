@@ -540,6 +540,7 @@ function connect(url, name) {
     return new Promise((resolve, reject) => {
         MongoClient.connect(url, {
             w: 1,
+            connectTimeoutMS: 900000,
             j: false
         }, (err, con) => {
             if (err) {
@@ -649,7 +650,8 @@ function prepareStats(to_block) {
                                     $gt: config.latest_block,
                                     $lte: to_block
                                 }
-                            }
+                            },
+                            sort: { height: 1 }
                         }
                     )
                     .then(() => {

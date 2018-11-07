@@ -15,6 +15,8 @@ if (log_config.logstash.enabled) {
     });
 }
 
+const PREPARE_STATS = (process.env.PREPARE_STATS) ? process.env.PREPARE_STATS : 1
+
 const INTERVAL_BLOCK_RETRY = 5000;
 
 async function syncBlocksFrom(start) {
@@ -25,8 +27,8 @@ async function syncBlocksFrom(start) {
                 start -= orphaned;
             else
                 start++;
-            if (start >= 1000 && start % 100 == 0)
-                await MongoDB.prepareStats(start - 100);
+            if ( PREPARE_STATS && start >= 1000 && start % 300 == 0)
+                await MongoDB.prepareStats(start - 300);
         } catch (error) {
             if (error.message == 5101) {
                 console.info('no more block found. retry in ' + INTERVAL_BLOCK_RETRY + 'ms');
@@ -417,6 +419,10 @@ function wait(ms) {
 MongoDB.init()
     .then(() => MongoDB.getLastBlock())
     .then((lastblock) => {
+        //Check height for status updates
+        setInterval(()=>{
+            MongoDB.getLastBlock().then(block=>console.info("current block height: %i", block.number));
+        }, 10000);
         if (lastblock) {
             Messenger.send('Sync start', 'sync starting from block ' + lastblock.number);
             winston.info('sync starting', {
