@@ -650,7 +650,8 @@ function prepareStats(to_block) {
                                     $gt: config.latest_block,
                                     $lte: to_block
                                 }
-                            }
+                            },
+                            sort: { height: 1 }
                         }
                     )
                     .then(() => {
