@@ -239,7 +239,7 @@ function organizeTxOutputs(tx, outputs, add_entities) {
         default:
             //not handled type of TX
             Messenger.send('Unknow type', `Unknow output type in block ${tx.height}, transaction ${tx.hash}, index ${output.index}`);
-            console.log('Unknown output type in blocks %i, transaction %i, index %i', tx.height, tx.hash, output.index);
+            console.log('Unknown output type %s in blocks %i, transaction %i, index %i', tx.height, tx.hash, output.index, output.attachment.type);
             winston.warn('unknow type', {
                 topic: "transaction",
                 message: "unknown output type",
