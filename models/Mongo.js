@@ -585,6 +585,7 @@ function prepareStats(to_block) {
         .then(config => {
             if (!config.latest_block)
                 config.latest_block = -1;
+            to_block=Math.min(config.latest_block+200000,to_block)
             if (to_block < config.latest_block)
                 throw Error('ERR_PREPARE_ADDRESS_STATISTICS');
             else {
