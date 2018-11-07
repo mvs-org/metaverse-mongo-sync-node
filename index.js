@@ -17,7 +17,7 @@ if (log_config.logstash.enabled) {
 
 const PREPARE_STATS = (process.env.PREPARE_STATS) ? process.env.PREPARE_STATS : 1
 const PREPARE_STATS_INTERVAL = (process.env.PREPARE_STATS_INTERVAL) ? process.env.PREPARE_STATS_INTERVAL : 10
-const PREPARE_STATS_THRESHOLD = (process.env.PREPARE_STATS_INTERVAL) ? process.env.PREPARE_STATS_INTERVAL : 200
+const PREPARE_STATS_THRESHOLD = (process.env.PREPARE_STATS_THRESHOLD) ? process.env.PREPARE_STATS_THRESHOLD : 200
 
 const INTERVAL_BLOCK_RETRY = 5000;
 
