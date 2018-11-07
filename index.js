@@ -15,6 +15,8 @@ if (log_config.logstash.enabled) {
     });
 }
 
+const PREPARE_STATS = (process.env.PREPARE_STATS) ? process.env.PREPARE_STATS : 1
+
 const INTERVAL_BLOCK_RETRY = 5000;
 
 async function syncBlocksFrom(start) {
@@ -25,8 +27,8 @@ async function syncBlocksFrom(start) {
                 start -= orphaned;
             else
                 start++;
-            // if (start >= 1000 && start % 300 == 0)
-            //     await MongoDB.prepareStats(start - 300);
+            if ( PREPARE_STATS && start >= 1000 && start % 300 == 0)
+                await MongoDB.prepareStats(start - 300);
         } catch (error) {
             if (error.message == 5101) {
                 console.info('no more block found. retry in ' + INTERVAL_BLOCK_RETRY + 'ms');
