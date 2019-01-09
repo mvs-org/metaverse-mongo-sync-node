@@ -442,7 +442,7 @@ function markOrphanTxsFrom(number, fork) {
             height: {
                 $gt: number
             },
-            orphed: 0
+            orphan: 0
         }, {
             $set: {
                 orphan: 1
