@@ -16,6 +16,8 @@ if (log_config.logstash.enabled) {
 }
 
 const PREPARE_STATS = (process.env.PREPARE_STATS) ? process.env.PREPARE_STATS : 1
+const PREPARE_STATS_INTERVAL = (process.env.PREPARE_STATS_INTERVAL) ? process.env.PREPARE_STATS_INTERVAL : 10
+const PREPARE_STATS_THRESHOLD = (process.env.PREPARE_STATS_THRESHOLD) ? process.env.PREPARE_STATS_THRESHOLD : 200
 
 const INTERVAL_BLOCK_RETRY = 5000;
 
@@ -27,8 +29,8 @@ async function syncBlocksFrom(start) {
                 start -= orphaned;
             else
                 start++;
-            if ( PREPARE_STATS && start >= 1000 && start % 300 == 0)
-                await MongoDB.prepareStats(start - 300);
+            if ( PREPARE_STATS && start >= 1000 && start % PREPARE_STATS_INTERVAL == 0)
+                await MongoDB.prepareStats(start - PREPARE_STATS_THRESHOLD);
         } catch (error) {
             if (error.message == 5101) {
                 console.info('no more block found. retry in ' + INTERVAL_BLOCK_RETRY + 'ms');
@@ -239,7 +241,7 @@ function organizeTxOutputs(tx, outputs, add_entities) {
         default:
             //not handled type of TX
             Messenger.send('Unknow type', `Unknow output type in block ${tx.height}, transaction ${tx.hash}, index ${output.index}`);
-            console.log('Unknown output type in blocks %i, transaction %i, index %i', tx.height, tx.hash, output.index);
+            console.log('Unknown output type %s in blocks %i, transaction %i, index %i', tx.height, tx.hash, output.index, output.attachment.type);
             winston.warn('unknow type', {
                 topic: "transaction",
                 message: "unknown output type",

@@ -37,7 +37,7 @@ function initPools() {
         })
         .then(() => {
             try {
-                database.collection('pool').insert([{
+                database.collection('pool').insertMany([{
                         name: "uupool",
                         url: 'http://www.uupool.cn',
                         origin: 'China',
@@ -234,7 +234,7 @@ function init() {
 
 function removeTxsFrom(start_height) {
     return new Promise((resolve, reject) => {
-        database.collection('tx').remove({
+        database.collection('tx').deleteMany({
             height: {
                 $gte: start_height
             }
@@ -248,7 +248,7 @@ function removeTxsFrom(start_height) {
 
 function removeBlocksFrom(start_height) {
     return new Promise((resolve, reject) => {
-        database.collection('block').remove({
+        database.collection('block').deleteMany({
             number: {
                 $gte: start_height
             }
@@ -442,7 +442,7 @@ function markOrphanTxsFrom(number, fork) {
             height: {
                 $gt: number
             },
-            orphed_at: 0
+            orphan: 0
         }, {
             $set: {
                 orphan: 1
@@ -500,7 +500,7 @@ function markUnspentOutputFrom(start_height) {
 
 function removeOutputsFrom(height) {
     return new Promise((resolve, reject) => {
-        database.collection('output').remove({
+        database.collection('output').deleteMany({
             height: {
                 $gt: height
             }
@@ -562,13 +562,13 @@ function getConfig(setting) {
 }
 
 function resetStats() {
-    return database.collection('config').remove({
+    return database.collection('config').deleteMany({
         setting: 'address_balances'
     });
 }
 
 function resetAddressBalances() {
-    return database.collection('address_balances').remove({});
+    return database.collection('address_balances').deleteMany({});
 }
 
 function prepareStats(to_block) {
@@ -585,6 +585,7 @@ function prepareStats(to_block) {
         .then(config => {
             if (!config.latest_block)
                 config.latest_block = -1;
+            to_block=Math.min(config.latest_block+200000,to_block)
             if (to_block < config.latest_block)
                 throw Error('ERR_PREPARE_ADDRESS_STATISTICS');
             else {
