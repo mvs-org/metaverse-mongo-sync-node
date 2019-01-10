@@ -572,6 +572,7 @@ function resetAddressBalances() {
 }
 
 function prepareStats(to_block) {
+    console.info('prepare statistics to block '+to_block)
     return getConfig('address_balances')
         .then((config) => {
             if (!config) {
