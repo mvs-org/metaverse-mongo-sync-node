@@ -29,7 +29,7 @@ async function syncBlocksFrom(start) {
                 start -= orphaned;
             else
                 start++;
-            if ( PREPARE_STATS && start >= 1000 && start % PREPARE_STATS_INTERVAL == 0)
+            if ( PREPARE_STATS && (start >= 1000) && (start % PREPARE_STATS_INTERVAL == 0))
                 await MongoDB.prepareStats(start - PREPARE_STATS_THRESHOLD);
         } catch (error) {
             if (error.message == 5101) {
