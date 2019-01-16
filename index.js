@@ -1,6 +1,7 @@
 let Mvsd = require('./models/Mvsd.js'),
     Messenger = require('./models/Messenger'),
-    MongoDB = require('./models/Mongo.js');
+    MongoDB = require('./models/Mongo.js'),
+    Metaverse = require('metaversejs');
 
 //Setup logging
 let winston = require('winston'),
@@ -108,6 +109,8 @@ function syncBlock(number) {
                                             output.height = tx.height;
                                             output.spent_tx = 0;
                                             output.confirmed_at = tx.confirmed_at;
+                                            if(Metaverse.script.isStakeLock(output.script))
+                                                output.locked_height_range = Metaverse.script.fromFullnode(output.script).getLockLength()                                
                                             return output;
                                         }))
                                         .then((outputs) => MongoDB.addOutputs(outputs)
@@ -187,6 +190,8 @@ function organizeTxOutputs(tx, outputs, add_entities) {
     return Promise.all(outputs.map((output) => {
         switch(output.attachment.type){
         case "etp":
+            if(Metaverse.script.isStakeLock(output.script))
+                output.locked_height_range = Metaverse.script.fromFullnode(output.script).getLockLength()
         case "message":
             output.attachment.symbol = "ETP";
             output.attachment.decimals = 8;
@@ -237,6 +242,7 @@ function organizeTxOutputs(tx, outputs, add_entities) {
             return output;
         case "asset-cert":
         case "mit":
+        case "null":
             return output;
         default:
             //not handled type of TX

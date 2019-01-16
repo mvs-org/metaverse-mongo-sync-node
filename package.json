@@ -5,6 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "bluebird": "^3.5.1",
+    "metaversejs": "^0.3.60",
     "mongodb": "^3.0.1",
     "node-pushover": "^0.2.2",
     "requestify": "^0.2.5",
