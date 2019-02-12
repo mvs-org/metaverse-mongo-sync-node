@@ -237,6 +237,7 @@ function organizeTxOutputs(tx, outputs, add_entities) {
             return output;
         case "asset-cert":
         case "mit":
+        case "coinstake":
             return output;
         default:
             //not handled type of TX
