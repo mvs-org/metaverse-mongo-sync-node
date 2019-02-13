@@ -586,6 +586,7 @@ function prepareStats(to_block) {
             if (!config.latest_block)
                 config.latest_block = -1;
             to_block=Math.min(config.latest_block+200000,to_block)
+            console.info(`start prepare statistics from ${config.latest_block} to block ${to_block}`)
             if (to_block < config.latest_block)
                 throw Error('ERR_PREPARE_ADDRESS_STATISTICS');
             else {
@@ -657,6 +658,7 @@ function prepareStats(to_block) {
                     )
                     .then(() => {
                         config.latest_block = to_block;
+                        console.info('prepare statistics finished to block '+to_block)
                         return database.collection('config').update({
                             'setting': 'address_balances'
                         }, config, {

@@ -16,3 +16,4 @@ To configure the sync service you need to set the environment variables:
 - MONGO_DB
 - MVSD_HOST
 - MVSD_PORT
+
