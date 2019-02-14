@@ -25,6 +25,8 @@ let service = {
     getBlockByNumber: getBlockByNumber,
     addAvatar: addAvatar,
     getAvatar: getAvatar,
+    getAllAvatars: getAllAvatars,
+    getAllPools: getAllPools,
     modifyAvatarAddress: modifyAvatarAddress
 };
 
@@ -534,6 +536,16 @@ function getAvatar(avatar) {
                 resolve(result);
         });
     });
+}
+
+function getAllAvatars() {
+    return database.collection('avatar')
+    .find({}).toArray().then((result) => result);
+}
+
+function getAllPools() {
+    return database.collection('pool')
+    .find({}).toArray().then((result) => result);
 }
 
 function connect(url, name) {

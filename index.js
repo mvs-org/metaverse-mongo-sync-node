@@ -22,6 +22,9 @@ const PREPARE_STATS_THRESHOLD = (process.env.PREPARE_STATS_THRESHOLD) ? process.
 
 const INTERVAL_BLOCK_RETRY = 5000;
 
+var avatarFromAddress = {}
+var poolFromAddress = {}
+
 async function syncBlocksFrom(start) {
     while (true) {
         try {
@@ -131,7 +134,7 @@ function syncBlock(number) {
                                             inputs.push(input);
                                             return input;
                                         })))
-                                    .then(() => organizeTx(tx, true))
+                                        .then(() => organizeTx(tx, true))
                                         .then((updatedTx) => MongoDB.addTx(updatedTx))
                                         .catch((e) => {
                                             winston.error('add transaction', {
@@ -144,7 +147,8 @@ function syncBlock(number) {
                                             console.error(e);
                                         });
                                 }))
-                                .then(() => MongoDB.addBlock(header))
+                                .then(() => organizeBlockHeader(header, block.txs.transactions))
+                                .then((updatedHeader) => MongoDB.addBlock(updatedHeader))
                                 .then(() => Promise.all(inputs.map((input) => {
                                     if (input.previous_output.hash !== "0000000000000000000000000000000000000000000000000000000000000000")
                                         return MongoDB.markSpentOutput(input.tx, input.index, header.number, input.previous_output.hash, input.previous_output.index)
@@ -362,6 +366,48 @@ function organizeTx(tx, add_entities) {
         });
 }
 
+function organizeBlockHeader(header, txs) {
+    txs.forEach(tx => {
+        if(tx.inputs[0].previous_output.hash == "0000000000000000000000000000000000000000000000000000000000000000" && tx.outputs[0].locked_height_range == 0) {
+            header.miner_address = tx.outputs[0].address;
+            switch(header.version){
+            case 1:
+                if(poolFromAddress[tx.outputs[0].address])
+                    header.miner = poolFromAddress[tx.outputs[0].address];
+                return header;
+            case 2:
+                header.miner = avatarFromAddress[tx.outputs[0].address];
+                return header;
+            default:
+                return header;
+            }
+        }
+    })
+    return header;
+}
+
+function getAllPools() {
+    return MongoDB.getAllPools()
+        .then((pools) => {
+            pools.forEach((pool) => {
+                pool.addresses.forEach((address) => {
+                    poolFromAddress[address] = pool.name;
+                })
+            })
+            return
+        })
+}
+
+function getAllAvatars() {
+    return MongoDB.getAllAvatars()
+        .then((avatars) => {
+            avatars.forEach((avatar) => {
+                avatarFromAddress[avatar.address] = avatar.symbol;
+            })
+            return
+        })
+}
+
 function newAsset(attachment) {
     return MongoDB.addAsset(attachment);
 }
@@ -371,10 +417,12 @@ function secondaryIssue(attachment) {
 }
 
 function newAvatar(attachment) {
+    avatarFromAddress[attachement.address] = attachement.symbol
     return MongoDB.addAvatar(attachment);
 }
 
 function newAvatarAddress(attachment) {
+    avatarFromAddress[attachement.address] = attachement.symbol
     return MongoDB.modifyAvatarAddress(attachment);
 }
 
@@ -425,6 +473,7 @@ function wait(ms) {
 
 
 MongoDB.init()
+    .then(() => Promise.all([getAllAvatars(), getAllPools()]))
     .then(() => MongoDB.getLastBlock())
     .then((lastblock) => {
         //Check height for status updates
