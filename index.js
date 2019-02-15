@@ -417,12 +417,12 @@ function secondaryIssue(attachment) {
 }
 
 function newAvatar(attachment) {
-    avatarFromAddress[attachement.address] = attachement.symbol
+    avatarFromAddress[attachment.address] = attachment.symbol
     return MongoDB.addAvatar(attachment);
 }
 
 function newAvatarAddress(attachment) {
-    avatarFromAddress[attachement.address] = attachement.symbol
+    avatarFromAddress[attachment.address] = attachment.symbol
     return MongoDB.modifyAvatarAddress(attachment);
 }
 
