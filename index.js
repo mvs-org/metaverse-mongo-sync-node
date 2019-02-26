@@ -378,6 +378,7 @@ function organizeBlockHeader(header, txs) {
                         topic: "block",
                         message: "miner",
                         height: header.number,
+                        type: 'pow',
                         miner: header.miner,
                         address: header.miner_address,
                         hash: header.hash
@@ -387,6 +388,7 @@ function organizeBlockHeader(header, txs) {
                         topic: "block",
                         message: "solo miner",
                         height: header.number,
+                        type: 'pow',
                         miner: header.address,
                         address: header.miner_address,
                         hash: header.hash
@@ -399,6 +401,7 @@ function organizeBlockHeader(header, txs) {
                     topic: "block",
                     message: "miner",
                     height: header.number,
+                    type: 'pos',
                     miner: header.miner,
                     address: header.miner_address,
                     hash: header.hash
