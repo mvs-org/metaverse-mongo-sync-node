@@ -377,6 +377,13 @@ function organizeBlockHeader(header, txs) {
                 return header;
             case 2:
                 header.miner = avatarFromAddress[tx.outputs[0].address];
+                winston.info('miner detected', {
+                    topic: "block",
+                    message: "miner",
+                    height: header.number,
+                    miner: header.miner,
+                    hash: header.hash
+                });
                 return header;
             default:
                 return header;
