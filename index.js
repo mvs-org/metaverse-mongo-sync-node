@@ -389,7 +389,6 @@ function organizeBlockHeader(header, txs) {
                         message: "solo miner",
                         height: header.number,
                         type: 'pow',
-                        miner: header.address,
                         address: header.miner_address,
                         hash: header.hash
                     });
