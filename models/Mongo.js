@@ -55,7 +55,7 @@ function initPools() {
                         name: "dodopool",
                         url: 'http://etp.dodopool.com',
                         origin: 'UK',
-                        addresses: ['M8vkrEVPJCDn54L3TN64W3Grrq3KkBNVXh']
+                        addresses: ['M8vkrEVPJCDn54L3TN64W3Grrq3KkBNVXh', 'MAXwUSQKHWxVYvpg4Cs3epPQTLKg14WjaB', 'MX2evLyh7pcW4SevTzs1CbyQCf9C8fPmWi']
                     },
                     {
                         name: "huopool",
@@ -67,7 +67,7 @@ function initPools() {
                         name: "metaverse.farm",
                         url: 'https://metaverse.farm',
                         origin: 'UK',
-                        addresses: ['MEVgP8kvucyR9523t71FVKSiZccQjeK4ki']
+                        addresses: ['MEVgP8kvucyR9523t71FVKSiZccQjeK4ki', 'MSLiK7d6JcmH6WVaq73kv4hi5J3pJnzhTV']
                     },
                     {
                         name: "altpool.pro",
@@ -88,7 +88,7 @@ function initPools() {
                         addresses: ['MNd7ZeeadbSzEAtXmQ7B1SsoEoi7kHUWPg']
                     },
                     {
-                        name: "mvs",
+                        name: "pool.mvs",
                         url: 'http://pool.mvs.live',
                         origin: 'China',
                         addresses: ['MFuFkdbp77YFQ24CnfLdLaKCdh9ASsR4r2']
@@ -109,13 +109,43 @@ function initPools() {
                         name: "chileminers",
                         url: "http://etp.chileminers.cl",
                         origin: "US",
-                        addresses: ["MJjMh7F2ZuNcEQvrEK2PoMwCyqX7vJrqTV"]
+                        addresses: ['MJjMh7F2ZuNcEQvrEK2PoMwCyqX7vJrqTV', 'MKCLevqjbhyK7dMWT261uP8EaKzqkX1WUi']
                     },
                     {
                         name: "sandpool.org",
                         url: 'http:/etp.sandpool.org',
                         origin: 'Europe',
-                        addresses: ['MWHLJTawEecdiz8xBK98GB6MGD1qzYRmrP']
+                        addresses: ['MWHLJTawEecdiz8xBK98GB6MGD1qzYRmrP', 'MCA8vo22N5w1KVNpytSW9Dc7wrDoxPRjNd']
+                    },
+                    {
+                        name: "etphunter",
+                        url: 'http://etphunter.com',
+                        origin: 'Asia/Pacific',
+                        addresses: ['M8N42NP5NR6tcgXqyzG3oZRqBqPoWRMLGu', 'MGvR5eJteEJaLHW8bfvV4uoPYamdpRqtst', 'MNDrZ8K5onqt6oJysurGkxG8Qq39aHV6uH']
+                    },
+                    {
+                        name: "topminers",
+                        url: 'https://topmining.co.kr/',
+                        origin: 'Asia/Pacific',
+                        addresses: ['MG65zQHtch4zxj9ghZKyTcjrRDiCdPAf8M']
+                    },
+                    {
+                        name: "2miners",
+                        url: 'https://2miners.com/',
+                        origin: 'Europe',
+                        addresses: ['MULT79mjG6qp31pEAVD5QzQAMUoEFKSNzR']
+                    },
+                    {
+                        name: "dpool",
+                        url: 'https://www.dpool.top/',
+                        origin: 'Asia/Pacific',
+                        addresses: ['MJqCzYjQUDcrLR1aFQUa31YewGpjoMKVDR']
+                    },
+                    {
+                        name: "xzrm",
+                        url: 'http://xzrm.com/',
+                        origin: 'China',
+                        addresses: ['MJRr2iJjnexvDvPQKHUcLaPAy6Mtnz7Sve', 'MWhyyPmrKhEtrr6VLMCSRfsNdL5qacDSQn']
                     }
                 ]);
             } catch (e) {
