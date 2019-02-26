@@ -372,8 +372,27 @@ function organizeBlockHeader(header, txs) {
             header.miner_address = tx.outputs[0].address;
             switch(header.version){
             case 1:
-                if(poolFromAddress[tx.outputs[0].address])
+                if(poolFromAddress[tx.outputs[0].address]){
                     header.miner = poolFromAddress[tx.outputs[0].address];
+                    winston.info('miner detected', {
+                        topic: "block",
+                        message: "miner",
+                        height: header.number,
+                        type: 'pow',
+                        miner: header.miner,
+                        address: header.miner_address,
+                        hash: header.hash
+                    });
+                } else {
+                    winston.info('solo miner', {
+                        topic: "block",
+                        message: "solo miner",
+                        height: header.number,
+                        type: 'pow',
+                        address: header.miner_address,
+                        hash: header.hash
+                    });
+                }
                 return header;
             case 2:
                 header.miner = avatarFromAddress[tx.outputs[0].address];
@@ -381,7 +400,9 @@ function organizeBlockHeader(header, txs) {
                     topic: "block",
                     message: "miner",
                     height: header.number,
+                    type: 'pos',
                     miner: header.miner,
+                    address: header.miner_address,
                     hash: header.hash
                 });
                 return header;
