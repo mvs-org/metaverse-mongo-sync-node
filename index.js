@@ -17,10 +17,11 @@ if (log_config.logstash.enabled) {
 }
 
 const PREPARE_STATS = (process.env.PREPARE_STATS) ? process.env.PREPARE_STATS : 1
-const PREPARE_STATS_INTERVAL = (process.env.PREPARE_STATS_INTERVAL) ? process.env.PREPARE_STATS_INTERVAL : 10
-const PREPARE_STATS_THRESHOLD = (process.env.PREPARE_STATS_THRESHOLD) ? process.env.PREPARE_STATS_THRESHOLD : 200
+const PREPARE_STATS_CHUNKSIZE = (process.env.PREPARE_STATS_CHUNKSIZE) ? parseInt(process.env.PREPARE_STATS_CHUNKSIZE) : 10000
+const PREPARE_STATS_INTERVAL = (process.env.PREPARE_STATS_INTERVAL) ? parseInt(process.env.PREPARE_STATS_INTERVAL) : 10
+const PREPARE_STATS_THRESHOLD = (process.env.PREPARE_STATS_THRESHOLD) ? parseInt(process.env.PREPARE_STATS_THRESHOLD) : 200
 
-const INTERVAL_BLOCK_RETRY = 5000;
+const INTERVAL_BLOCK_RETRY = 5000
 
 var avatarFromAddress = {}
 var poolFromAddress = {}
@@ -33,8 +34,8 @@ async function syncBlocksFrom(start) {
                 start -= orphaned;
             else
                 start++;
-            if ( PREPARE_STATS && (start >= 1000) && (start % PREPARE_STATS_INTERVAL == 0))
-                await MongoDB.prepareStats(start - PREPARE_STATS_THRESHOLD);
+            while (PREPARE_STATS && (start >= 1000) && (start % PREPARE_STATS_INTERVAL == 0))
+                await MongoDB.prepareStats(start - PREPARE_STATS_THRESHOLD, PREPARE_STATS_CHUNKSIZE);
         } catch (error) {
             if (error.message == 5101) {
                 console.info('no more block found. retry in ' + INTERVAL_BLOCK_RETRY + 'ms');
@@ -89,33 +90,33 @@ function syncBlock(number) {
             return detectFork(number - 1, header.previous_block_hash, null, false)
                 .then((length) => (length) ? length :
                     MongoDB.getBlock(header.hash)
-                    .then((b) => {
-                        header.txs = [];
-                        if (b != null) {
-                            winston.info('block exists', {
-                                topic: "block",
-                                message: "exists",
-                                height: number,
-                                hash: header.hash
-                            });
-                            return null;
-                        } else {
-                            return Promise.all(block.txs.transactions.map((tx) => {
+                        .then((b) => {
+                            header.txs = [];
+                            if (b != null) {
+                                winston.info('block exists', {
+                                    topic: "block",
+                                    message: "exists",
+                                    height: number,
+                                    hash: header.hash
+                                });
+                                return null;
+                            } else {
+                                return Promise.all(block.txs.transactions.map((tx) => {
                                     header.txs.push(tx.hash);
                                     tx.height = number;
                                     tx.orphan = 0;
                                     tx.block = header.hash;
                                     tx.confirmed_at = header.time_stamp;
                                     return Promise.all(((tx.outputs) ? tx.outputs : []).map((output) => {
-                                            output.tx = tx.hash;
-                                            output.orphaned_at = 0;
-                                            output.height = tx.height;
-                                            output.spent_tx = 0;
-                                            output.confirmed_at = tx.confirmed_at;
-                                            if(Metaverse.script.isStakeLock(output.script))
-                                                output.locked_height_range = Metaverse.script.fromFullnode(output.script).getLockLength()                                
-                                            return output;
-                                        }))
+                                        output.tx = tx.hash;
+                                        output.orphaned_at = 0;
+                                        output.height = tx.height;
+                                        output.spent_tx = 0;
+                                        output.confirmed_at = tx.confirmed_at;
+                                        if (Metaverse.script.isStakeLock(output.script))
+                                            output.locked_height_range = Metaverse.script.fromFullnode(output.script).getLockLength()
+                                        return output;
+                                    }))
                                         .then((outputs) => MongoDB.addOutputs(outputs)
                                             .catch((e) => {
                                                 winston.error('add outputs', {
@@ -147,121 +148,121 @@ function syncBlock(number) {
                                             console.error(e);
                                         });
                                 }))
-                                .then(() => organizeBlockHeader(header, block.txs.transactions))
-                                .then((updatedHeader) => MongoDB.addBlock(updatedHeader))
-                                .then(() => Promise.all(inputs.map((input) => {
-                                    if (input.previous_output.hash !== "0000000000000000000000000000000000000000000000000000000000000000")
-                                        return MongoDB.markSpentOutput(input.tx, input.index, header.number, input.previous_output.hash, input.previous_output.index)
-                                            .then((result) => {
-                                                if (result)
-                                                    winston.info('output spent', {
-                                                        topic: "output",
-                                                        message: "spent",
-                                                        tx: input.previous_output.hash,
-                                                        index: input.previous_output.index
-                                                    });
-                                                else {
-                                                    winston.error('spending output', {
-                                                        topic: "output",
-                                                        message: "output not spendable",
-                                                        spending_tx: input.tx,
-                                                        spending_index: input.index,
-                                                        tx: input.previous_output.hash,
-                                                        index: input.previous_output.index
-                                                    });
-                                                    // throw Error("ERR_SPENDING_OUTPUT");
-                                                }
-                                            });
-                                    return {};
-                                })))
-                                .then(() => {
-                                    if (number % 100000 == 0)
-                                        Messenger.send('Sync milestone', `Block #${number} reached`);
-                                    winston.info('block added', {
-                                        topic: "block",
-                                        message: "added",
-                                        height: number,
-                                        hash: header.hash
-                                    });
-                                })
-                                .then(() => 0); //0 blocks orphan
-                        }
-                    }));
+                                    .then(() => organizeBlockHeader(header, block.txs.transactions))
+                                    .then((updatedHeader) => MongoDB.addBlock(updatedHeader))
+                                    .then(() => Promise.all(inputs.map((input) => {
+                                        if (input.previous_output.hash !== "0000000000000000000000000000000000000000000000000000000000000000")
+                                            return MongoDB.markSpentOutput(input.tx, input.index, header.number, input.previous_output.hash, input.previous_output.index)
+                                                .then((result) => {
+                                                    if (result)
+                                                        winston.info('output spent', {
+                                                            topic: "output",
+                                                            message: "spent",
+                                                            tx: input.previous_output.hash,
+                                                            index: input.previous_output.index
+                                                        });
+                                                    else {
+                                                        winston.error('spending output', {
+                                                            topic: "output",
+                                                            message: "output not spendable",
+                                                            spending_tx: input.tx,
+                                                            spending_index: input.index,
+                                                            tx: input.previous_output.hash,
+                                                            index: input.previous_output.index
+                                                        });
+                                                        // throw Error("ERR_SPENDING_OUTPUT");
+                                                    }
+                                                });
+                                        return {};
+                                    })))
+                                    .then(() => {
+                                        if (number % 100000 == 0)
+                                            Messenger.send('Sync milestone', `Block #${number} reached`);
+                                        winston.info('block added', {
+                                            topic: "block",
+                                            message: "added",
+                                            height: number,
+                                            hash: header.hash
+                                        });
+                                    })
+                                    .then(() => 0); //0 blocks orphan
+                            }
+                        }));
         });
 }
 
 function organizeTxOutputs(tx, outputs, add_entities) {
     return Promise.all(outputs.map((output) => {
-        switch(output.attachment.type){
-        case "etp":
-            if(Metaverse.script.isStakeLock(output.script))
-                output.locked_height_range = Metaverse.script.fromFullnode(output.script).getLockLength()
-        case "message":
-            output.attachment.symbol = "ETP";
-            output.attachment.decimals = 8;
-            return output;
-        case "asset-issue":
-            output.attachment.decimals = output.attachment.decimal_number;
-            delete output.attachment.decimal_number;
-            output.attachment.issue_tx = tx.hash;
-            output.attachment.issue_index = output.index;
-            output.attachment.height = tx.height;
-            output.attachment.confirmed_at = tx.confirmed_at;
-            if (output.attachment.is_secondaryissue) {
-                if (output.attenuation_model_param) {
-                    output.attachment.attenuation_model_param = output.attenuation_model_param;
+        switch (output.attachment.type) {
+            case "etp":
+                if (Metaverse.script.isStakeLock(output.script))
+                    output.locked_height_range = Metaverse.script.fromFullnode(output.script).getLockLength()
+            case "message":
+                output.attachment.symbol = "ETP";
+                output.attachment.decimals = 8;
+                return output;
+            case "asset-issue":
+                output.attachment.decimals = output.attachment.decimal_number;
+                delete output.attachment.decimal_number;
+                output.attachment.issue_tx = tx.hash;
+                output.attachment.issue_index = output.index;
+                output.attachment.height = tx.height;
+                output.attachment.confirmed_at = tx.confirmed_at;
+                if (output.attachment.is_secondaryissue) {
+                    if (output.attenuation_model_param) {
+                        output.attachment.attenuation_model_param = output.attenuation_model_param;
+                    }
+                    if (add_entities)
+                        secondaryIssue(output.attachment);
+                } else {
+                    output.attachment.original_quantity = output.attachment.quantity;
+                    output.attachment.updates = [];
+                    if (add_entities)
+                        newAsset(output.attachment);
                 }
-                if(add_entities)
-                    secondaryIssue(output.attachment);
-            } else {
-                output.attachment.original_quantity = output.attachment.quantity;
+                return output;
+            case "asset-transfer":
+                return MongoDB.getAsset(output.attachment.symbol)
+                    .then((asset) => {
+                        output.attachment.decimals = asset.decimals;
+                        return output;
+                    });
+            case "did-register":
+                output.attachment.issue_tx = tx.hash;
+                output.attachment.issue_index = output.index;
+                output.attachment.height = tx.height;
+                output.attachment.original_address = output.attachment.address;
                 output.attachment.updates = [];
-                if(add_entities)
-                    newAsset(output.attachment);
-            }
-            return output;
-        case "asset-transfer":
-            return MongoDB.getAsset(output.attachment.symbol)
-                .then((asset) => {
-                    output.attachment.decimals = asset.decimals;
-                    return output;
+                output.attachment.confirmed_at = tx.confirmed_at;
+                if (add_entities)
+                    newAvatar(output.attachment);
+                return output;
+            case "did-transfer":
+                output.attachment.issue_tx = tx.hash;
+                output.attachment.issue_index = output.index;
+                output.attachment.height = tx.height;
+                output.attachment.confirmed_at = tx.confirmed_at;
+                if (add_entities)
+                    newAvatarAddress(output.attachment);
+                return output;
+            case "asset-cert":
+            case "mit":
+            case "coinstake":
+                return output;
+            default:
+                //not handled type of TX
+                Messenger.send('Unknow type', `Unknow output type in block ${tx.height}, transaction ${tx.hash}, index ${output.index}`);
+                console.log('Unknown output type %s in blocks %i, transaction %i, index %i', tx.height, tx.hash, output.index, output.attachment.type);
+                winston.warn('unknow type', {
+                    topic: "transaction",
+                    message: "unknown output type",
+                    height: tx.height,
+                    hash: tx.hash,
+                    block: tx.block,
+                    index: output.index,
+                    type: (output.attachment) ? output.attachment.type : 'none'
                 });
-        case "did-register":
-            output.attachment.issue_tx = tx.hash;
-            output.attachment.issue_index = output.index;
-            output.attachment.height = tx.height;
-            output.attachment.original_address = output.attachment.address;
-            output.attachment.updates = [];
-            output.attachment.confirmed_at = tx.confirmed_at;
-            if(add_entities)
-                newAvatar(output.attachment);
-            return output;
-        case "did-transfer":
-            output.attachment.issue_tx = tx.hash;
-            output.attachment.issue_index = output.index;
-            output.attachment.height = tx.height;
-            output.attachment.confirmed_at = tx.confirmed_at;
-            if(add_entities)
-                newAvatarAddress(output.attachment);
-            return output;
-        case "asset-cert":
-        case "mit":
-        case "coinstake":
-            return output;
-        default:
-            //not handled type of TX
-            Messenger.send('Unknow type', `Unknow output type in block ${tx.height}, transaction ${tx.hash}, index ${output.index}`);
-            console.log('Unknown output type %s in blocks %i, transaction %i, index %i', tx.height, tx.hash, output.index, output.attachment.type);
-            winston.warn('unknow type', {
-                topic: "transaction",
-                message: "unknown output type",
-                height: tx.height,
-                hash: tx.hash,
-                block: tx.block,
-                index: output.index,
-                type: (output.attachment) ? output.attachment.type : 'none'
-            });
-            return output;
+                return output;
         }
     }));
 }
@@ -286,53 +287,53 @@ function organizeTxPreviousOutputs(input) {
             input.attachment.type = previousOutput.attachment.type;
             input.value = previousOutput.value;
             input.address = previousOutput.address;
-            switch(previousOutput.attachment.type){
-            case "etp":
-            case "message":
-                input.attachment.symbol = "ETP";
-                input.attachment.decimals = 8;
-                return input;
-            case "asset-issue":
-                input.attachment.quantity = previousOutput.attachment.quantity;
-                input.attachment.symbol = previousOutput.attachment.symbol;
-                input.attachment.decimals = previousOutput.attachment.decimals;
-                return input;
-            case "asset-transfer":
-                return MongoDB.getAsset(previousOutput.attachment.symbol)
-                    .then((asset) => {
-                        input.attachment.quantity = previousOutput.attachment.quantity;
-                        input.attachment.symbol = previousOutput.attachment.symbol;
-                        input.attachment.decimals = asset.decimals;
-                        return input;
+            switch (previousOutput.attachment.type) {
+                case "etp":
+                case "message":
+                    input.attachment.symbol = "ETP";
+                    input.attachment.decimals = 8;
+                    return input;
+                case "asset-issue":
+                    input.attachment.quantity = previousOutput.attachment.quantity;
+                    input.attachment.symbol = previousOutput.attachment.symbol;
+                    input.attachment.decimals = previousOutput.attachment.decimals;
+                    return input;
+                case "asset-transfer":
+                    return MongoDB.getAsset(previousOutput.attachment.symbol)
+                        .then((asset) => {
+                            input.attachment.quantity = previousOutput.attachment.quantity;
+                            input.attachment.symbol = previousOutput.attachment.symbol;
+                            input.attachment.decimals = asset.decimals;
+                            return input;
+                        });
+                case "did-transfer":
+                    input.attachment.address = previousOutput.attachment.address;
+                    input.attachment.symbol = previousOutput.attachment.symbol;
+                    return input;
+                case "asset-cert":
+                    input.attachment.to_did = previousOutput.attachment.to_did;
+                    input.attachment.symbol = previousOutput.attachment.symbol;
+                    input.attachment.cert = previousOutput.attachment.cert;
+                    return input;
+                case "mit":
+                    input.attachment.to_did = previousOutput.attachment.to_did;
+                    input.attachment.symbol = previousOutput.attachment.symbol;
+                    input.attachment.status = previousOutput.attachment.status;
+                    return input;
+                default:
+                    //not handled type of TX
+                    Messenger.send('Unknow type', `Unknow output type in block ${previousTx.height}, transaction ${previousTx.hash}, index ${input.previous_output.index}`);
+                    console.log('Unknown output type in blocks %i, transaction %i, index %i', previousTx.hash, previousTx.height, input.previous_output.index);
+                    winston.warn('unknow type', {
+                        topic: "transaction",
+                        message: "unknown output type",
+                        height: previousTx.height,
+                        hash: previousTx.hash,
+                        block: previousTx.block,
+                        index: input.previous_output.index,
+                        type: (previousOutput.attachment) ? previousOutput.attachment.type : 'none'
                     });
-            case "did-transfer":
-                input.attachment.address = previousOutput.attachment.address;
-                input.attachment.symbol = previousOutput.attachment.symbol;
-                return input;
-            case "asset-cert":
-                input.attachment.to_did = previousOutput.attachment.to_did;
-                input.attachment.symbol = previousOutput.attachment.symbol;
-                input.attachment.cert = previousOutput.attachment.cert;
-                return input;
-            case "mit":
-                input.attachment.to_did = previousOutput.attachment.to_did;
-                input.attachment.symbol = previousOutput.attachment.symbol;
-                input.attachment.status = previousOutput.attachment.status;
-                return input;
-            default:
-                //not handled type of TX
-                Messenger.send('Unknow type', `Unknow output type in block ${previousTx.height}, transaction ${previousTx.hash}, index ${input.previous_output.index}`);
-                console.log('Unknown output type in blocks %i, transaction %i, index %i', previousTx.hash, previousTx.height, input.previous_output.index);
-                winston.warn('unknow type', {
-                    topic: "transaction",
-                    message: "unknown output type",
-                    height: previousTx.height,
-                    hash: previousTx.hash,
-                    block: previousTx.block,
-                    index: input.previous_output.index,
-                    type: (previousOutput.attachment) ? previousOutput.attachment.type : 'none'
-                });
-                return input;
+                    return input;
             }
         });
 }
@@ -355,9 +356,9 @@ function organizeTxInputs(inputs) {
 function organizeTx(tx, add_entities) {
     return Promise.all([
         organizeTxOutputs(tx, tx.outputs, add_entities),
-            organizeTxInputs(tx.inputs),
-            Mvsd.getTx(tx.hash, false).then((res) => res.transaction.raw)
-        ])
+        organizeTxInputs(tx.inputs),
+        Mvsd.getTx(tx.hash, false).then((res) => res.transaction.raw)
+    ])
         .then((results) => {
             tx.outputs = results[0];
             tx.inputs = results[1];
@@ -368,46 +369,46 @@ function organizeTx(tx, add_entities) {
 
 function organizeBlockHeader(header, txs) {
     txs.forEach(tx => {
-        if(tx.inputs[0].previous_output.hash == "0000000000000000000000000000000000000000000000000000000000000000" && tx.outputs[0].locked_height_range == 0) {
+        if (tx.inputs[0].previous_output.hash == "0000000000000000000000000000000000000000000000000000000000000000" && tx.outputs[0].locked_height_range == 0) {
             header.miner_address = tx.outputs[0].address;
-            switch(header.version){
-            case 1:
-                if(poolFromAddress[tx.outputs[0].address]){
-                    header.miner = poolFromAddress[tx.outputs[0].address];
+            switch (header.version) {
+                case 1:
+                    if (poolFromAddress[tx.outputs[0].address]) {
+                        header.miner = poolFromAddress[tx.outputs[0].address];
+                        winston.info('miner detected', {
+                            topic: "block",
+                            message: "miner",
+                            height: header.number,
+                            type: 'pow',
+                            miner: header.miner,
+                            address: header.miner_address,
+                            hash: header.hash
+                        });
+                    } else {
+                        winston.info('solo miner', {
+                            topic: "block",
+                            message: "solo miner",
+                            height: header.number,
+                            type: 'pow',
+                            address: header.miner_address,
+                            hash: header.hash
+                        });
+                    }
+                    return header;
+                case 2:
+                    header.miner = avatarFromAddress[tx.outputs[0].address];
                     winston.info('miner detected', {
                         topic: "block",
                         message: "miner",
                         height: header.number,
-                        type: 'pow',
+                        type: 'pos',
                         miner: header.miner,
                         address: header.miner_address,
                         hash: header.hash
                     });
-                } else {
-                    winston.info('solo miner', {
-                        topic: "block",
-                        message: "solo miner",
-                        height: header.number,
-                        type: 'pow',
-                        address: header.miner_address,
-                        hash: header.hash
-                    });
-                }
-                return header;
-            case 2:
-                header.miner = avatarFromAddress[tx.outputs[0].address];
-                winston.info('miner detected', {
-                    topic: "block",
-                    message: "miner",
-                    height: header.number,
-                    type: 'pos',
-                    miner: header.miner,
-                    address: header.miner_address,
-                    hash: header.hash
-                });
-                return header;
-            default:
-                return header;
+                    return header;
+                default:
+                    return header;
             }
         }
     })
@@ -505,8 +506,8 @@ MongoDB.init()
     .then(() => MongoDB.getLastBlock())
     .then((lastblock) => {
         //Check height for status updates
-        setInterval(()=>{
-            MongoDB.getLastBlock().then(block=>console.info("current block height: %i", block.number));
+        setInterval(() => {
+            MongoDB.getLastBlock().then(block => console.info("current block height: %i", block.number));
         }, 10000);
         if (lastblock) {
             Messenger.send('Sync start', 'sync starting from block ' + lastblock.number);

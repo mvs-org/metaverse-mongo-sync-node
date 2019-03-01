@@ -3,6 +3,12 @@
   "version": "0.2.1",
   "description": "",
   "main": "index.js",
+  "jshintConfig":{
+    "esversion": 9,
+    "asi" : true,
+    "trailingcomma": true,
+    "node": true
+  },
   "dependencies": {
     "bluebird": "^3.5.1",
     "metaversejs": "^0.3.64",

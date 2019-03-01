@@ -35,118 +35,124 @@ function initPools() {
         .createIndex({
             name: 1
         }, {
-            unique: true
-        })
+                unique: true
+            })
         .then(() => {
             try {
                 database.collection('pool').insertMany([{
-                        name: "uupool",
-                        url: 'http://www.uupool.cn',
-                        origin: 'China',
-                        addresses: ['M97VaaTYnKtGzfMFrreitiYoy84Eueb16N', 'MUiW2CViWLQBg2TQDsRt1Pcj7KyrdqFPj7']
-                    },
-                    {
-                        name: "xinyuanjie",
-                        url: 'http://xinyuanjie.org',
-                        origin: 'China',
-                        addresses: ['MKD5pmeyR14KGUxLo7YEECbgJ7MfrLPdTG']
-                    },
-                    {
-                        name: "dodopool",
-                        url: 'http://etp.dodopool.com',
-                        origin: 'UK',
-                        addresses: ['M8vkrEVPJCDn54L3TN64W3Grrq3KkBNVXh', 'MAXwUSQKHWxVYvpg4Cs3epPQTLKg14WjaB', 'MX2evLyh7pcW4SevTzs1CbyQCf9C8fPmWi']
-                    },
-                    {
-                        name: "huopool",
-                        url: 'http://cryptopoolpond.com/#/',
-                        origin: 'China',
-                        addresses: ['MGr3pfTK8qJx3JEVnkTBjUSQZVK4jDujpZ']
-                    },
-                    {
-                        name: "metaverse.farm",
-                        url: 'https://metaverse.farm',
-                        origin: 'UK',
-                        addresses: ['MEVgP8kvucyR9523t71FVKSiZccQjeK4ki', 'MSLiK7d6JcmH6WVaq73kv4hi5J3pJnzhTV']
-                    },
-                    {
-                        name: "altpool.pro",
-                        url: 'http://etp.altpool.pro',
-                        origin: 'Europe',
-                        addresses: ['M97sAWjC2Du6RNBaHiCoqZFAGYXWrTM9At']
-                    },
-                    {
-                        name: "fairpool",
-                        url: 'https://etp.fairpool.xyz',
-                        origin: 'US',
-                        addresses: ['MGodWFRV7wu3jzwqfDakSCoH6ouhBL2TVG']
-                    },
-                    {
-                        name: "comining.io",
-                        url: 'http://comining.io',
-                        origin: 'Russia',
-                        addresses: ['MNd7ZeeadbSzEAtXmQ7B1SsoEoi7kHUWPg']
-                    },
-                    {
-                        name: "pool.mvs",
-                        url: 'http://pool.mvs.live',
-                        origin: 'China',
-                        addresses: ['MFuFkdbp77YFQ24CnfLdLaKCdh9ASsR4r2']
-                    },
-                    {
-                        name: "cryptopoolpond",
-                        url: 'http://cryptopoolpond.com/#/',
-                        origin: 'US/Europe',
-                        addresses: ['MPVYH9GQGZkJc4rZ4ZEx9bnV1mpa3M4whw']
-                    },
-                    {
-                        name: "europool",
-                        url: 'https://etp.europool.me/',
-                        origin: 'Europe',
-                        addresses: ['MAt2UVEvSN6SrRyjwpJKHqXnXqXC3wWnRK']
-                    },
-                    {
-                        name: "chileminers",
-                        url: "http://etp.chileminers.cl",
-                        origin: "US",
-                        addresses: ['MJjMh7F2ZuNcEQvrEK2PoMwCyqX7vJrqTV', 'MKCLevqjbhyK7dMWT261uP8EaKzqkX1WUi']
-                    },
-                    {
-                        name: "sandpool.org",
-                        url: 'http:/etp.sandpool.org',
-                        origin: 'Europe',
-                        addresses: ['MWHLJTawEecdiz8xBK98GB6MGD1qzYRmrP', 'MCA8vo22N5w1KVNpytSW9Dc7wrDoxPRjNd']
-                    },
-                    {
-                        name: "etphunter",
-                        url: 'http://etphunter.com',
-                        origin: 'Asia/Pacific',
-                        addresses: ['M8N42NP5NR6tcgXqyzG3oZRqBqPoWRMLGu', 'MGvR5eJteEJaLHW8bfvV4uoPYamdpRqtst', 'MNDrZ8K5onqt6oJysurGkxG8Qq39aHV6uH']
-                    },
-                    {
-                        name: "topminers",
-                        url: 'https://topmining.co.kr/',
-                        origin: 'Asia/Pacific',
-                        addresses: ['MG65zQHtch4zxj9ghZKyTcjrRDiCdPAf8M']
-                    },
-                    {
-                        name: "2miners",
-                        url: 'https://2miners.com/',
-                        origin: 'Europe',
-                        addresses: ['MULT79mjG6qp31pEAVD5QzQAMUoEFKSNzR']
-                    },
-                    {
-                        name: "dpool",
-                        url: 'https://www.dpool.top/',
-                        origin: 'Asia/Pacific',
-                        addresses: ['MJqCzYjQUDcrLR1aFQUa31YewGpjoMKVDR']
-                    },
-                    {
-                        name: "xzrm",
-                        url: 'http://xzrm.com/',
-                        origin: 'China',
-                        addresses: ['MJRr2iJjnexvDvPQKHUcLaPAy6Mtnz7Sve', 'MWhyyPmrKhEtrr6VLMCSRfsNdL5qacDSQn']
-                    }
+                    name: "uupool",
+                    url: 'http://www.uupool.cn',
+                    origin: 'China',
+                    addresses: ['M97VaaTYnKtGzfMFrreitiYoy84Eueb16N', 'MUiW2CViWLQBg2TQDsRt1Pcj7KyrdqFPj7']
+                },
+                {
+                    name: "xinyuanjie",
+                    url: 'http://xinyuanjie.org',
+                    origin: 'China',
+                    addresses: ['MKD5pmeyR14KGUxLo7YEECbgJ7MfrLPdTG']
+                },
+                {
+                    name: "dodopool",
+                    url: 'http://etp.dodopool.com',
+                    origin: 'UK',
+                    addresses: ['M8vkrEVPJCDn54L3TN64W3Grrq3KkBNVXh', 'MAXwUSQKHWxVYvpg4Cs3epPQTLKg14WjaB', 'MX2evLyh7pcW4SevTzs1CbyQCf9C8fPmWi']
+                },
+                {
+                    name: "huopool",
+                    url: 'http://cryptopoolpond.com/#/',
+                    origin: 'China',
+                    addresses: ['MGr3pfTK8qJx3JEVnkTBjUSQZVK4jDujpZ']
+                },
+                {
+                    name: "metaverse.farm",
+                    url: 'https://metaverse.farm',
+                    origin: 'UK',
+                    addresses: ['MEVgP8kvucyR9523t71FVKSiZccQjeK4ki', 'MSLiK7d6JcmH6WVaq73kv4hi5J3pJnzhTV']
+                },
+                {
+                    name: "altpool.pro",
+                    url: 'http://etp.altpool.pro',
+                    origin: 'Europe',
+                    addresses: ['M97sAWjC2Du6RNBaHiCoqZFAGYXWrTM9At']
+                },
+                {
+                    name: "fairpool",
+                    url: 'https://etp.fairpool.xyz',
+                    origin: 'US',
+                    addresses: ['MGodWFRV7wu3jzwqfDakSCoH6ouhBL2TVG']
+                },
+                {
+                    name: "comining.io",
+                    url: 'http://comining.io',
+                    origin: 'Russia',
+                    addresses: ['MNd7ZeeadbSzEAtXmQ7B1SsoEoi7kHUWPg']
+                },
+                {
+                    name: "pool.mvs",
+                    url: 'http://pool.mvs.live',
+                    origin: 'China',
+                    addresses: ['MFuFkdbp77YFQ24CnfLdLaKCdh9ASsR4r2']
+                },
+                {
+                    name: "cryptopoolpond",
+                    url: 'http://cryptopoolpond.com/#/',
+                    origin: 'US/Europe',
+                    addresses: ['MPVYH9GQGZkJc4rZ4ZEx9bnV1mpa3M4whw']
+                },
+                {
+                    name: "europool",
+                    url: 'https://etp.europool.me/',
+                    origin: 'Europe',
+                    addresses: ['MAt2UVEvSN6SrRyjwpJKHqXnXqXC3wWnRK']
+                },
+                {
+                    name: "chileminers",
+                    url: "http://etp.chileminers.cl",
+                    origin: "US",
+                    addresses: ['MJjMh7F2ZuNcEQvrEK2PoMwCyqX7vJrqTV', 'MKCLevqjbhyK7dMWT261uP8EaKzqkX1WUi']
+                },
+                {
+                    name: "sandpool.org",
+                    url: 'http:/etp.sandpool.org',
+                    origin: 'Europe',
+                    addresses: ['MWHLJTawEecdiz8xBK98GB6MGD1qzYRmrP', 'MCA8vo22N5w1KVNpytSW9Dc7wrDoxPRjNd']
+                },
+                {
+                    name: "etphunter",
+                    url: 'http://etphunter.com',
+                    origin: 'Asia/Pacific',
+                    addresses: ['M8N42NP5NR6tcgXqyzG3oZRqBqPoWRMLGu', 'MGvR5eJteEJaLHW8bfvV4uoPYamdpRqtst', 'MNDrZ8K5onqt6oJysurGkxG8Qq39aHV6uH']
+                },
+                {
+                    name: "topminers",
+                    url: 'https://topmining.co.kr/',
+                    origin: 'Asia/Pacific',
+                    addresses: ['MG65zQHtch4zxj9ghZKyTcjrRDiCdPAf8M']
+                },
+                {
+                    name: "2miners",
+                    url: 'https://2miners.com/',
+                    origin: 'Europe',
+                    addresses: ['MULT79mjG6qp31pEAVD5QzQAMUoEFKSNzR']
+                },
+                {
+                    name: "dpool",
+                    url: 'https://www.dpool.top/',
+                    origin: 'Asia/Pacific',
+                    addresses: ['MJqCzYjQUDcrLR1aFQUa31YewGpjoMKVDR']
+                },
+                {
+                    name: "xzrm",
+                    url: 'http://xzrm.com/',
+                    origin: 'China',
+                    addresses: ['MJRr2iJjnexvDvPQKHUcLaPAy6Mtnz7Sve', 'MWhyyPmrKhEtrr6VLMCSRfsNdL5qacDSQn']
+                },
+                {
+                    name: "madenim",
+                    url: "https://www.madenim.org/",
+                    origin: "Europe",
+                    addresses: ["MScz3BTwujNXCJ89QcBGjKZ2BaJh4FrH5y"]
+                }
                 ]);
             } catch (e) {
                 console.error(e);
@@ -160,8 +166,8 @@ function initBlocks() {
             hash: 1,
             block: 1
         }, {
-            unique: true
-        }),
+                unique: true
+            }),
         database.collection('block').createIndex({
             number: -1,
             orphan: 1
@@ -178,8 +184,8 @@ function initOutputs() {
             spent_tx: 1,
             spent_index: 1
         }, {
-            unique: true
-        }),
+                unique: true
+            }),
         database.collection('output').createIndex({
             "attachment.type": 1,
             orphaned_at: 1,
@@ -200,8 +206,8 @@ function initConfig() {
         database.collection('config').createIndex({
             "setting": 1
         }, {
-            unique: true
-        })
+                unique: true
+            })
     ]);
 }
 
@@ -219,8 +225,8 @@ function initTxs() {
             hash: 1,
             block: 1
         }, {
-            unique: true
-        }),
+                unique: true
+            }),
         database.collection('tx').createIndex({
             hash: 1
         }),
@@ -238,8 +244,8 @@ function initAssets() {
         database.collection('asset').createIndex({
             symbol: 1
         }, {
-            unique: true
-        })
+                unique: true
+            })
     ]);
 }
 
@@ -248,8 +254,8 @@ function initAvatars() {
         database.collection('avatar').createIndex({
             symbol: 1
         }, {
-            unique: true
-        })
+                unique: true
+            })
     ]);
 }
 
@@ -330,8 +336,8 @@ function addTx(tx) {
             }
         }]
     }, tx, {
-        upsert: true
-    });
+            upsert: true
+        });
 }
 
 function addAsset(asset) {
@@ -343,17 +349,17 @@ function secondaryIssue(asset) {
         database.collection('asset').updateMany({
             symbol: asset.symbol
         }, {
-            $inc: {
-                quantity: asset.quantity
-            },
-            $push: {
-                updates: asset
-            }
-        }, (err, result) => {
-            if (err) throw err.message;
-            else
-                resolve(result.result.nModified);
-        });
+                $inc: {
+                    quantity: asset.quantity
+                },
+                $push: {
+                    updates: asset
+                }
+            }, (err, result) => {
+                if (err) throw err.message;
+                else
+                    resolve(result.result.nModified);
+            });
     });
 }
 
@@ -366,17 +372,17 @@ function modifyAvatarAddress(avatar) {
         database.collection('avatar').updateMany({
             symbol: avatar.symbol
         }, {
-            $set: {
-                address: avatar.address
-            },
-            $push: {
-                updates: avatar
-            }
-        }, (err, result) => {
-            if (err) throw err.message;
-            else
-                resolve(result.result.nModified);
-        });
+                $set: {
+                    address: avatar.address
+                },
+                $push: {
+                    updates: avatar
+                }
+            }, (err, result) => {
+                if (err) throw err.message;
+                else
+                    resolve(result.result.nModified);
+            });
     });
 }
 
@@ -441,11 +447,11 @@ function markOrphanFrom(number, forkhead) {
 function clearDataFrom(height) {
     console.info('clear from ' + height);
     return Promise.all([
-            removeBlocksFrom(height),
-            removeTxsFrom(height),
-            resetStats(),
-            removeOutputsFrom(height).then(() => markUnspentOutputFrom(height)),
-        ])
+        removeBlocksFrom(height),
+        removeTxsFrom(height),
+        resetStats(),
+        removeOutputsFrom(height).then(() => markUnspentOutputFrom(height)),
+    ])
         .then((results) => results[0]);
 }
 
@@ -457,14 +463,14 @@ function markOrphanBlocksFrom(number, forkhead) {
             },
             orphan: 0
         }, {
-            $set: {
-                orphan: forkhead
-            }
-        }, (err, result) => {
-            if (err) throw Error(err.message);
-            else
-                resolve(result.result.nModified);
-        });
+                $set: {
+                    orphan: forkhead
+                }
+            }, (err, result) => {
+                if (err) throw Error(err.message);
+                else
+                    resolve(result.result.nModified);
+            });
     });
 }
 
@@ -476,14 +482,14 @@ function markOrphanTxsFrom(number, fork) {
             },
             orphan: 0
         }, {
-            $set: {
-                orphan: 1
-            }
-        }, (err, result) => {
-            if (err) throw Error(err.message);
-            else
-                resolve(result.result.nModified);
-        });
+                $set: {
+                    orphan: 1
+                }
+            }, (err, result) => {
+                if (err) throw Error(err.message);
+                else
+                    resolve(result.result.nModified);
+            });
     });
 }
 
@@ -494,16 +500,16 @@ function markSpentOutput(spending_tx, spending_index, height, spent_tx, spent_in
             tx: spent_tx,
             index: spent_index
         }, {
-            $set: {
-                spent_tx: spending_tx,
-                spent_index: spending_index,
-                spent_height: height
-            }
-        }, (err, result) => {
-            if (err) throw err.message;
-            else
-                resolve(result.result.nModified);
-        });
+                $set: {
+                    spent_tx: spending_tx,
+                    spent_index: spending_index,
+                    spent_height: height
+                }
+            }, (err, result) => {
+                if (err) throw err.message;
+                else
+                    resolve(result.result.nModified);
+            });
     });
 }
 
@@ -517,16 +523,16 @@ function markUnspentOutputFrom(start_height) {
                 $gte: start_height
             }
         }, {
-            $set: {
-                spent_tx: 0,
-                spent_index: null,
-                spent_height: null
-            }
-        }, (err, result) => {
-            if (err) throw err.message;
-            else
-                resolve(result.result.nModified);
-        });
+                $set: {
+                    spent_tx: 0,
+                    spent_index: null,
+                    spent_height: null
+                }
+            }, (err, result) => {
+                if (err) throw err.message;
+                else
+                    resolve(result.result.nModified);
+            });
     });
 }
 
@@ -570,12 +576,12 @@ function getAvatar(avatar) {
 
 function getAllAvatars() {
     return database.collection('avatar')
-    .find({}).toArray().then((result) => result);
+        .find({}).toArray().then((result) => result);
 }
 
 function getAllPools() {
     return database.collection('pool')
-    .find({}).toArray().then((result) => result);
+        .find({}).toArray().then((result) => result);
 }
 
 function connect(url, name) {
@@ -613,7 +619,7 @@ function resetAddressBalances() {
     return database.collection('address_balances').deleteMany({});
 }
 
-function prepareStats(to_block) {
+function prepareStats(to_block, chunksize) {
     return getConfig('address_balances')
         .then((config) => {
             if (!config) {
@@ -627,85 +633,85 @@ function prepareStats(to_block) {
         .then(config => {
             if (!config.latest_block)
                 config.latest_block = -1;
-            to_block=Math.min(config.latest_block+200000,to_block)
+            to_block = Math.min(config.latest_block + chunksize, to_block)
             console.info(`start prepare statistics from ${config.latest_block} to block ${to_block}`)
             if (to_block < config.latest_block)
                 throw Error('ERR_PREPARE_ADDRESS_STATISTICS');
             else {
-                return database.collection('tx').mapReduce(function() {
-                            this.inputs.forEach((input) => {
-                                if (input.address !== "") {
-                                    if (input && input.value) {
-                                        emit(input.address, {
-                                            "ETP": -input.value
-                                        });
-                                    }
-                                    switch (input.attachment.type) {
-                                        case 'asset-transfer':
-                                        case 'asset-issue':
-                                            if (input.attachment.symbol && input.attachment.symbol !== "ETP") {
-                                                emit(input.address, {
-                                                    [input.attachment.symbol.replace(/\./g, '_')]: -input.attachment.quantity
-                                                });
-                                            }
-                                            break;
-                                    }
-                                } else if (input && input.previous_output.hash == "0000000000000000000000000000000000000000000000000000000000000000")
-                                    emit("coinbase", {
-                                        "ETP": -this.outputs[0].value
-                                    });
-                            });
-                            this.outputs.forEach((output) => {
-                                if (output && output.address) {
-                                    if (output.value)
-                                        emit(output.address, {
-                                            "ETP": output.value
-                                        });
-                                    switch (output.attachment.type) {
-                                        case 'asset-transfer':
-                                        case 'asset-issue':
-                                            if (output.attachment.symbol && output.attachment.symbol !== "ETP")
-                                                emit(output.address, {
-                                                    [output.attachment.symbol.replace(/\./g, '_')]: output.attachment.quantity
-                                                });
-                                            break;
-                                    }
-                                }
-                            });
-                        },
-                        function(address, values) {
-                            var result = {};
-                            values.forEach((item) => {
-                                Object.keys(item).forEach((symbol) => {
-                                    if (result[symbol]) {
-                                        result[symbol] += item[symbol];
-                                    } else
-                                        result[symbol] = item[symbol];
+                return database.collection('tx').mapReduce(function () {
+                    this.inputs.forEach((input) => {
+                        if (input.address !== "") {
+                            if (input && input.value) {
+                                emit(input.address, {
+                                    "ETP": -input.value
                                 });
+                            }
+                            switch (input.attachment.type) {
+                                case 'asset-transfer':
+                                case 'asset-issue':
+                                    if (input.attachment.symbol && input.attachment.symbol !== "ETP") {
+                                        emit(input.address, {
+                                            [input.attachment.symbol.replace(/\./g, '_')]: -input.attachment.quantity
+                                        });
+                                    }
+                                    break;
+                            }
+                        } else if (input && input.previous_output.hash == "0000000000000000000000000000000000000000000000000000000000000000")
+                            emit("coinbase", {
+                                "ETP": -this.outputs[0].value
                             });
-                            return result;
-                        }, {
-                            out: {
-                                reduce: 'address_balances'
-                            },
-                            query: {
-                                orphan: 0,
-                                height: {
-                                    $gt: config.latest_block,
-                                    $lte: to_block
-                                }
-                            },
-                            sort: { height: 1 }
+                    });
+                    this.outputs.forEach((output) => {
+                        if (output && output.address) {
+                            if (output.value)
+                                emit(output.address, {
+                                    "ETP": output.value
+                                });
+                            switch (output.attachment.type) {
+                                case 'asset-transfer':
+                                case 'asset-issue':
+                                    if (output.attachment.symbol && output.attachment.symbol !== "ETP")
+                                        emit(output.address, {
+                                            [output.attachment.symbol.replace(/\./g, '_')]: output.attachment.quantity
+                                        });
+                                    break;
+                            }
                         }
-                    )
+                    });
+                },
+                    function (address, values) {
+                        var result = {};
+                        values.forEach((item) => {
+                            Object.keys(item).forEach((symbol) => {
+                                if (result[symbol]) {
+                                    result[symbol] += item[symbol];
+                                } else
+                                    result[symbol] = item[symbol];
+                            });
+                        });
+                        return result;
+                    }, {
+                        out: {
+                            reduce: 'address_balances'
+                        },
+                        query: {
+                            orphan: 0,
+                            height: {
+                                $gt: config.latest_block,
+                                $lte: to_block
+                            }
+                        },
+                        sort: { height: 1 }
+                    }
+                )
                     .then(() => {
                         config.latest_block = to_block;
-                        console.info('prepare statistics finished to block '+to_block)
+                        console.info('prepare statistics finished to block ' + to_block)
                         return database.collection('config').update({
                             'setting': 'address_balances'
                         }, config, {
-                            upsert: true
-                        });
+                                upsert: true
+                            });
                     });
             }
         });
