@@ -34,8 +34,10 @@ async function syncBlocksFrom(start) {
                 start -= orphaned;
             else
                 start++;
-            while (PREPARE_STATS && (start >= 1000) && (start % PREPARE_STATS_INTERVAL == 0))
-                await MongoDB.prepareStats(start - PREPARE_STATS_THRESHOLD, PREPARE_STATS_CHUNKSIZE);
+            let target = start-PREPARE_STATS_THRESHOLD
+            let syncedTo = 0
+            while (PREPARE_STATS && syncedTo < target && (start >= 1000) && (start % PREPARE_STATS_INTERVAL == 0))
+                syncedTo = await MongoDB.prepareStats(start - PREPARE_STATS_THRESHOLD, PREPARE_STATS_CHUNKSIZE);
         } catch (error) {
             if (error.message == 5101) {
                 console.info('no more block found. retry in ' + INTERVAL_BLOCK_RETRY + 'ms');
