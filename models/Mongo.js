@@ -712,7 +712,9 @@ function prepareStats(to_block, chunksize) {
                         }, config, {
                                 upsert: true
                             });
-                    });
+                    })
+                    .then(()=>to_block)
+
             }
         });
 }
