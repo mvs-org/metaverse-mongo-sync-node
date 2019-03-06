@@ -371,7 +371,7 @@ function organizeTx(tx, add_entities) {
 
 function organizeBlockHeader(header, txs) {
     txs.forEach(tx => {
-        if (tx.inputs[0].previous_output.hash == "0000000000000000000000000000000000000000000000000000000000000000" && tx.outputs[0].locked_height_range == 0) {
+        if (tx.inputs[0].previous_output.hash == "0000000000000000000000000000000000000000000000000000000000000000" && tx.inputs[0].script != '' && tx.outputs[0].locked_height_range == 0) {
             header.miner_address = tx.outputs[0].address;
             switch (header.version) {
                 case 1:
