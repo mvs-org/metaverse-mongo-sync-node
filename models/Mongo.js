@@ -438,7 +438,13 @@ function markOrphanFrom(number, forkhead) {
             markOrphanBlocksFrom(number, forkhead),
             removeOutputsFrom(number, now),
             markOrphanTxsFrom(number),
-            resetStats(),
+            this.getConfig('address_balances').then((config)=>{
+                // Check if the calculated address balances are affected by the fork
+                if(config && config.latest_block && config.latest_block < number){
+                    return
+                }
+                return resetStats()
+            }),
             markUnspentOutputFrom(number)
         ]))
         .then((results) => results[0]);
