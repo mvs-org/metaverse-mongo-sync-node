@@ -546,7 +546,7 @@ function removeOutputsFrom(height) {
     return new Promise((resolve, reject) => {
         database.collection('output').deleteMany({
             height: {
-                $gt: height
+                $gte: height
             }
         }, (err, result) => {
             if (err) throw err.message;
