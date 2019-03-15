@@ -443,6 +443,7 @@ function markOrphanFrom(number, forkhead) {
                 if(config && config.latest_block && config.latest_block < number){
                     return
                 }
+                console.info(`address balance configuration height ${config.latest_block} compared to fork height ${number}`)
                 return resetStats()
             }),
             markUnspentOutputFrom(number)
