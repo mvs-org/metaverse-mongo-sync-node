@@ -647,6 +647,7 @@ function prepareStats(to_block, chunksize) {
             else {
                 return database.collection('tx').mapReduce(function () {
                     this.inputs.forEach((input) => {
+                        // check if input is not from coinbase
                         if (input.address !== "") {
                             if (input && input.value) {
                                 emit(input.address, {
@@ -663,24 +664,36 @@ function prepareStats(to_block, chunksize) {
                                     }
                                     break;
                             }
-                        } else if (input && input.previous_output.hash == "0000000000000000000000000000000000000000000000000000000000000000")
-                            emit("coinbase", {
-                                "ETP": -this.outputs[0].value
-                            });
+                        }
                     });
                     this.outputs.forEach((output) => {
+                        const isCoinbase = this.inputs[0].previous_output.hash == "0000000000000000000000000000000000000000000000000000000000000000"
                         if (output && output.address) {
-                            if (output.value)
+                            if (output.value) {
                                 emit(output.address, {
                                     "ETP": output.value
                                 });
+                                // deduct any coinbase sourced etp from coinbase record
+                                if (isCoinbase) {
+                                    emit("coinbase", {
+                                        "ETP": -output.value
+                                    });
+                                }
+                            }
                             switch (output.attachment.type) {
                                 case 'asset-transfer':
                                 case 'asset-issue':
-                                    if (output.attachment.symbol && output.attachment.symbol !== "ETP")
+                                    if (output.attachment.symbol && output.attachment.symbol !== "ETP") {
                                         emit(output.address, {
                                             [output.attachment.symbol.replace(/\./g, '_')]: output.attachment.quantity
                                         });
+                                        // deduct any coinbase sourced assets from coinbase record
+                                        if (isCoinbase) {
+                                            emit('coinbase', {
+                                                [output.attachment.symbol.replace(/\./g, '_')]: -output.attachment.quantity
+                                            });
+                                        }
+                                    }
                                     break;
                             }
                         }
