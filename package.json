@@ -3,19 +3,19 @@
   "version": "0.2.1",
   "description": "",
   "main": "index.js",
-  "jshintConfig":{
+  "jshintConfig": {
     "esversion": 9,
-    "asi" : true,
+    "asi": true,
     "trailingcomma": true,
     "node": true
   },
   "dependencies": {
-    "bluebird": "^3.5.1",
+    "bluebird": "^3.5.3",
     "metaversejs": "^0.3.64",
-    "mongodb": "^3.0.1",
+    "mongodb": "^3.1.13",
     "node-pushover": "^0.2.2",
     "requestify": "^0.2.5",
-    "winston": "^2.4.1",
+    "winston": "^2.4.4",
     "winston-logstash": "^0.4.0"
   },
   "devDependencies": {},

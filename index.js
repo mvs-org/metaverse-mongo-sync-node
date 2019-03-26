@@ -210,6 +210,10 @@ function organizeTxOutputs(tx, outputs, add_entities) {
                 output.attachment.issue_index = output.index;
                 output.attachment.height = tx.height;
                 output.attachment.confirmed_at = tx.confirmed_at;
+                outputs.forEach(other_output => {
+                    if(other_output.attachment.cert == "mining" && output.attachment.symbol == other_output.attachment.symbol)
+                        output.attachment.mining_model = other_output.attachment.content
+                })
                 if (output.attachment.is_secondaryissue) {
                     if (output.attenuation_model_param) {
                         output.attachment.attenuation_model_param = output.attenuation_model_param;
