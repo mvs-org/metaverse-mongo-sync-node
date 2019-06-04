@@ -34,7 +34,7 @@ async function syncBlocksFrom(start) {
                 start -= orphaned;
             else
                 start++;
-            let target = start-PREPARE_STATS_THRESHOLD
+            let target = start - PREPARE_STATS_THRESHOLD
             let syncedTo = 0
             while (PREPARE_STATS && syncedTo < target && (start >= 1000) && (start % PREPARE_STATS_INTERVAL == 0))
                 syncedTo = await MongoDB.prepareStats(start - PREPARE_STATS_THRESHOLD, PREPARE_STATS_CHUNKSIZE);
@@ -211,7 +211,7 @@ function organizeTxOutputs(tx, outputs, add_entities) {
                 output.attachment.height = tx.height;
                 output.attachment.confirmed_at = tx.confirmed_at;
                 outputs.forEach(other_output => {
-                    if(other_output.attachment.cert == "mining" && output.attachment.symbol == other_output.attachment.symbol)
+                    if (other_output.attachment.cert == "mining" && output.attachment.symbol == other_output.attachment.symbol)
                         output.attachment.mining_model = other_output.attachment.content
                 })
                 if (output.attachment.is_secondaryissue) {
@@ -377,7 +377,7 @@ function organizeBlockHeader(header, txs) {
     txs.forEach(tx => {
         if (tx.inputs[0].previous_output.hash == "0000000000000000000000000000000000000000000000000000000000000000" && tx.inputs[0].script != '' && tx.outputs[0].locked_height_range == 0) {
             header.miner_address = tx.outputs[0].address;
-            if(tx.outputs[1])
+            if (tx.outputs[1])
                 header.mst_mining = tx.outputs[1].attachment.symbol;
             switch (header.version) {
                 case 1:
