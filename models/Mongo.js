@@ -317,7 +317,8 @@ function getLastBlock() {
     }).limit(1).toArray().then((result) => result[0]);
 }
 
-function addBlock(header) {
+async function addBlock(header) {
+    console.debug(`add block ${header.number}`)
     return database.collection('block').insertOne(header);
 }
 
@@ -431,24 +432,24 @@ function getBlockByNumber(number) {
     });
 }
 
-function markOrphanFrom(number, forkhead) {
-    let now = Math.floor(Date.now() / 1000);
-    return Promise.all([
-        markOrphanBlocksFrom(number, forkhead),
-        removeOutputsFrom(number, now),
-        markOrphanTxsFrom(number),
-        getConfig('address_balances').then((c) => {
-            // Check if the calculated address balances are affected by the fork
-            if (c && c.latest_block && c.latest_block < number) {
-                console.info(`no address balance recalculation needed. configuration height ${c.latest_block} compared to fork height ${number}`)
-                return
-            }
-            console.info(`address balance configuration height ${c ? c.latest_block : undefined} compared to fork height ${number}`)
-            return resetStats()
-        }),
-        markUnspentOutputFrom(number)
-    ])
-        .then((results) => results[0]);
+async function markOrphanFrom(number, forkhead) {
+    console.debug(`mark database records as orphan from block ${number} ${forkhead}`)
+    const countUnspent = await markUnspentOutputFrom(number)
+    console.debug(`marked ${countUnspent} outputs as unspent`)
+    const countBlocks = await markOrphanBlocksFrom(number, forkhead)
+    console.debug(`marked ${countBlocks} blocks as forked`)
+    const countRemovedOutputs = await removeOutputsFrom(number)
+    console.debug(`removed ${countRemovedOutputs} outputs`)
+    const countTransactions = await markOrphanTxsFrom(number)
+    console.debug(`marked ${countTransactions} transactions as forked`)
+    const config = await getConfig('address_balances')
+    if (config && config.latest_block && config.latest_block < number) {
+        console.info(`no address balance recalculation needed. configuration height ${config.latest_block} compared to fork height ${number}`)
+    } else {
+        console.info(`address balance configuration height ${config ? config.latest_block : undefined} compared to fork height ${number}`)
+        await resetStats()
+    }
+    return countBlocks
 }
 
 function clearDataFrom(height) {
@@ -463,98 +464,82 @@ function clearDataFrom(height) {
 }
 
 function markOrphanBlocksFrom(number, forkhead) {
-    return new Promise((resolve, reject) => {
-        database.collection('block').updateMany({
-            number: {
-                $gt: number
-            },
-            orphan: 0
-        }, {
-                $set: {
-                    orphan: forkhead
-                }
-            }, (err, result) => {
-                if (err) throw Error(err.message);
-                else
-                    resolve(result.result.nModified);
-            });
-    });
+    return database.collection('block').updateMany({
+        number: {
+            $gt: number
+        },
+        orphan: 0
+    }, {
+            $set: {
+                orphan: forkhead
+            }
+        })
+        .then((result) => result.result.nModified)
+        .catch(error => {
+            console.error(`failed to update reorged block: ${error.message}`)
+            return 0
+        })
 }
 
 function markOrphanTxsFrom(number, fork) {
-    return new Promise((resolve, reject) => {
-        database.collection('tx').updateMany({
-            height: {
-                $gt: number
-            },
-            orphan: 0
-        }, {
-                $set: {
-                    orphan: 1
-                }
-            }, (err, result) => {
-                if (err) throw Error(err.message);
-                else
-                    resolve(result.result.nModified);
-            });
-    });
+    return database.collection('tx').updateMany({
+        height: {
+            $gt: number
+        },
+        orphan: 0
+    }, {
+            $set: {
+                orphan: 1
+            }
+        })
+        .then((result) => result.result.nModified)
+        .catch(error => {
+            console.error(`failed to mark orphan transactions: ${error.message}`)
+            return 0
+        })
 }
 
 function markSpentOutput(spending_tx, spending_index, height, spent_tx, spent_index) {
-    return new Promise((resolve, reject) => {
-        database.collection('output').updateMany({
-            orphaned_at: 0,
-            tx: spent_tx,
-            index: spent_index
-        }, {
-                $set: {
-                    spent_tx: spending_tx,
-                    spent_index: spending_index,
-                    spent_height: height
-                }
-            }, (err, result) => {
-                if (err) throw err.message;
-                else
-                    resolve(result.result.nModified);
-            });
-    });
+    return database.collection('output').updateMany({
+        orphaned_at: 0,
+        tx: spent_tx,
+        index: spent_index
+    }, {
+            $set: {
+                spent_tx: spending_tx,
+                spent_index: spending_index,
+                spent_height: height
+            }
+        })
+        .then((result) => result.result.nModified)
 }
 
 /**
  * Fork handling to make outputs spendable.
  */
 function markUnspentOutputFrom(start_height) {
-    return new Promise((resolve, reject) => {
-        database.collection('output').updateMany({
-            spent_height: {
-                $gte: start_height
+    return database.collection('output').updateMany({
+        spent_height: {
+            $gte: start_height
+        }
+    }, {
+            $set: {
+                spent_tx: 0,
+                spent_index: null,
+                spent_height: null
             }
-        }, {
-                $set: {
-                    spent_tx: 0,
-                    spent_index: null,
-                    spent_height: null
-                }
-            }, (err, result) => {
-                if (err) throw err.message;
-                else
-                    resolve(result.result.nModified);
-            });
-    });
+        })
+        .then((result) => result.result.nModified)
 }
 
 function removeOutputsFrom(height) {
-    return new Promise((resolve, reject) => {
-        database.collection('output').deleteMany({
+    return database.collection('output')
+        .deleteMany({
             height: {
                 $gte: height
             }
-        }, (err, result) => {
-            if (err) throw err.message;
-            else
-                resolve(result.result.nRemoved);
-        });
-    });
+        })
+        .then((result) => result.result.nRemoved)
 }
 
 function getAsset(asset) {
