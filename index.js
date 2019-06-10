@@ -483,7 +483,7 @@ function detectFork(number, hash, forkhead, is_fork) {
                 if (!is_fork)
                     return null;
                 else
-                    return applyFork(number, forkhead);
+                    return applyFork(number + 1, forkhead);
             }
         });
 }
