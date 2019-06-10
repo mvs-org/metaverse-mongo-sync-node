@@ -539,11 +539,7 @@ function removeOutputsFrom(height) {
                 $gte: height
             }
         })
-        .then((result)=>{
-            console.log(result)
-            return result
-        })
-        .then((result) => result.result.nRemoved)
+        .then((result) => result.result.n)
 }
 
 function getAsset(asset) {
