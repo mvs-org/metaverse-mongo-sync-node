@@ -440,7 +440,7 @@ async function markOrphanFrom(number, forkhead) {
     console.debug(`marked ${countBlocks} blocks as forked`)
     const countRemovedOutputs = await removeOutputsFrom(number)
     console.debug(`removed ${countRemovedOutputs} outputs`)
-    const countTransactions = await markOrphanTxsFrom(number)
+    const countTransactions = await markOrphanTxsFrom(number, forkhead)
     console.debug(`marked ${countTransactions} transactions as forked`)
     const config = await getConfig('address_balances')
     if (config && config.latest_block && config.latest_block < number) {
@@ -466,7 +466,7 @@ function clearDataFrom(height) {
 function markOrphanBlocksFrom(number, forkhead) {
     return database.collection('block').updateMany({
         number: {
-            $gt: number
+            $gte: number
         },
         orphan: 0
     }, {
@@ -481,15 +481,15 @@ function markOrphanBlocksFrom(number, forkhead) {
         })
 }
 
-function markOrphanTxsFrom(number, fork) {
+function markOrphanTxsFrom(number, forkhead) {
     return database.collection('tx').updateMany({
         height: {
-            $gt: number
+            $gte: number
         },
         orphan: 0
     }, {
             $set: {
-                orphan: 1
+                orphan: forkhead
             }
         })
         .then((result) => result.result.nModified)
@@ -538,6 +538,10 @@ function removeOutputsFrom(height) {
             height: {
                 $gte: height
             }
+        })
+        .then((result)=>{
+            console.log(result)
+            return result
         })
         .then((result) => result.result.nRemoved)
 }
