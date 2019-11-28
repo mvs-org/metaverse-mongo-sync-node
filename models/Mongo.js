@@ -133,7 +133,7 @@ function initPools() {
                     name: "2miners",
                     url: 'https://2miners.com/',
                     origin: 'Europe',
-                    addresses: ['MULT79mjG6qp31pEAVD5QzQAMUoEFKSNzR']
+                    addresses: ['MULT79mjG6qp31pEAVD5QzQAMUoEFKSNzR', 'MV35jawXLsNFM2MGMUKsJxoVsZx67oSJ6v']
                 },
                 {
                     name: "dpool",
