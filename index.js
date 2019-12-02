@@ -22,6 +22,8 @@ const PREPARE_STATS_INTERVAL = (process.env.PREPARE_STATS_INTERVAL) ? parseInt(p
 const PREPARE_STATS_THRESHOLD = (process.env.PREPARE_STATS_THRESHOLD) ? parseInt(process.env.PREPARE_STATS_THRESHOLD) : 200
 
 const INTERVAL_BLOCK_RETRY = 5000
+const INTERVAL_DNA_VOTE_PERIOD = (process.env.INTERVAL_DNA_VOTE_PERIOD) ? process.env.INTERVAL_DNA_VOTE_PERIOD : 60000
+const INTERVAL_DNA_VOTE_OFFSET = (process.env.INTERVAL_DNA_VOTE_OFFSET) ? process.env.PREPARE_STATS : 1000
 
 var avatarFromAddress = {}
 var poolFromAddress = {}
@@ -115,22 +117,47 @@ function syncBlock(number) {
                                         output.height = tx.height;
                                         output.spent_tx = 0;
                                         output.confirmed_at = tx.confirmed_at;
+                                        if (output.attachment.type === 'message' && output.attachment.content.indexOf('vote_supernode:') === 0) {
+                                            //this is a vote
+                                            if (tx.voteDnaSupernodeIndex < output.index) {
+                                                tx.voteDnaSupernodeAvatar = output.attachment.content.match(/^vote_supernode\:([A-Za-z0-9\.]+)$/)[1];
+                                                tx.voteDnaSupernodeIndex = output.index;
+                                            }
+                                        }
                                         if (Metaverse.script.isStakeLock(output.script))
                                             output.locked_height_range = Metaverse.script.fromFullnode(output.script).getLockLength()
                                         return output;
                                     }))
-                                        .then((outputs) => MongoDB.addOutputs(outputs)
-                                            .catch((e) => {
-                                                winston.error('add outputs', {
-                                                    topic: "output",
-                                                    message: e.message,
-                                                    height: tx.height,
-                                                    hash: tx.hash,
-                                                    block: tx.block
-                                                });
-                                                console.error(e);
-                                                return;
-                                            }))
+                                        .then((outputs) => {
+                                            //Check if there was a vote in this transaction
+                                            if (tx.voteDnaSupernodeIndex !== undefined) {
+                                                outputs.forEach(output => {
+                                                    if (output.attachment.type === 'asset-transfer' &&
+                                                        output.attachment.symbol === 'DNA' &&
+                                                        output.attenuation_model_param.lock_period >= 60000) {
+                                                        output.voteDnaSupernodeAvatar = tx.voteDnaSupernodeAvatar;
+                                                        let numberPeriods = Math.floor(output.attenuation_model_param.lock_period / 60000);
+                                                        output.voteDnaSupernodeCycles = [];
+                                                        for (i = 1; i <= numberPeriods; i++) {
+                                                            const startingVoteCycle = Math.floor((output.height + INTERVAL_DNA_VOTE_OFFSET) / INTERVAL_DNA_VOTE_PERIOD);
+                                                            output.voteDnaSupernodeCycles.push(startingVoteCycle + i * INTERVAL_DNA_VOTE_PERIOD)
+                                                        }
+                                                    }
+                                                })
+                                            }
+                                            return MongoDB.addOutputs(outputs)
+                                                .catch((e) => {
+                                                    winston.error('add outputs', {
+                                                        topic: "output",
+                                                        message: e.message,
+                                                        height: tx.height,
+                                                        hash: tx.hash,
+                                                        block: tx.block
+                                                    });
+                                                    console.error(e);
+                                                    return;
+                                                })
+                                        })
                                         .then(() => Promise.all(tx.inputs.map((input, index) => {
                                             input.tx = tx.hash;
                                             input.index = index;

@@ -152,7 +152,13 @@ function initPools() {
                     url: "https://www.madenim.org/",
                     origin: "Europe",
                     addresses: ["MScz3BTwujNXCJ89QcBGjKZ2BaJh4FrH5y"]
-                }
+                },
+                {
+                    name: "f2pool",
+                    url: "https://www.f2pool.com/",
+                    origin: "China",
+                    addresses: ["MTCZUqTpQPYmAK2GK2cyfu5jBhw8Mw3b5X"]
+                },
                 ]);
             } catch (e) {
                 console.error(e);
