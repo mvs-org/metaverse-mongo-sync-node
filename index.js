@@ -134,7 +134,7 @@ function syncBlock(number) {
                                                 outputs.forEach(output => {
                                                     if (output.attachment.type === 'asset-transfer' &&
                                                         output.attachment.symbol === 'DNA' &&
-                                                        output.attenuation_model_param.lock_period >= 60000) {
+                                                        output.attenuation_model_param.lock_period >= INTERVAL_DNA_VOTE_PERIOD) {
                                                         output.voteDnaSupernodeAvatar = tx.voteDnaSupernodeAvatar;
                                                         let numberPeriods = Math.floor(output.attenuation_model_param.lock_period / 60000);
                                                         output.voteDnaSupernodeCycles = [];
