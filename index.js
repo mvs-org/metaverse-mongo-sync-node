@@ -119,7 +119,7 @@ function syncBlock(number) {
                                         output.confirmed_at = tx.confirmed_at;
                                         if (output.attachment.type === 'message' && output.attachment.content.indexOf('vote_supernode:') === 0) {
                                             //this is a vote
-                                            if (tx.voteDnaSupernodeIndex < output.index) {
+                                            if (tx.voteDnaSupernodeIndex == undefined || tx.voteDnaSupernodeIndex < output.index) {
                                                 tx.voteDnaSupernodeAvatar = output.attachment.content.match(/^vote_supernode\:([A-Za-z0-9\.]+)$/)[1];
                                                 tx.voteDnaSupernodeIndex = output.index;
                                             }
@@ -134,14 +134,24 @@ function syncBlock(number) {
                                                 outputs.forEach(output => {
                                                     if (output.attachment.type === 'asset-transfer' &&
                                                         output.attachment.symbol === 'DNA' &&
+                                                        output.attenuation_model_param !== undefined &&
                                                         output.attenuation_model_param.lock_period >= INTERVAL_DNA_VOTE_PERIOD) {
                                                         output.voteDnaSupernodeAvatar = tx.voteDnaSupernodeAvatar;
-                                                        let numberPeriods = Math.floor(output.attenuation_model_param.lock_period / 60000);
+                                                        let numberPeriods = Math.floor(output.attenuation_model_param.lock_period / INTERVAL_DNA_VOTE_PERIOD);
                                                         output.voteDnaSupernodeCycles = [];
                                                         for (i = 1; i <= numberPeriods; i++) {
                                                             const startingVoteCycle = Math.floor((output.height + INTERVAL_DNA_VOTE_OFFSET) / INTERVAL_DNA_VOTE_PERIOD);
-                                                            output.voteDnaSupernodeCycles.push(startingVoteCycle + i * INTERVAL_DNA_VOTE_PERIOD)
+                                                            output.voteDnaSupernodeCycles.push((startingVoteCycle + i) * INTERVAL_DNA_VOTE_PERIOD)
                                                         }
+                                                        winston.info('new dna supernode vote', {
+                                                            topic: "vote",
+                                                            message: "dna supernode vote",
+                                                            tx: tx.hash,
+                                                            candidate: output.voteDnaSupernodeAvatar,
+                                                            amount: output.attachment.quantity,
+                                                            index: output.index,
+                                                            periods: output.voteDnaSupernodeCycles.join(','),
+                                                        });
                                                     }
                                                 })
                                             }
