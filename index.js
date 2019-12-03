@@ -136,25 +136,31 @@ function syncBlock(number) {
                                                         output.attachment.symbol === 'DNA' &&
                                                         output.attenuation_model_param !== undefined &&
                                                         output.attenuation_model_param.lock_period >= INTERVAL_DNA_VOTE_PERIOD) {
-                                                        output.voteDnaSupernodeAvatar = tx.voteDnaSupernodeAvatar;
                                                         let numberPeriods = Math.floor(output.attenuation_model_param.lock_period / INTERVAL_DNA_VOTE_PERIOD);
-                                                        output.voteDnaSupernodeCycles = [];
+                                                        let vote = {
+                                                            type: 'supernode',
+                                                            candidate: tx.voteDnaSupernodeAvatar,
+                                                            cycles: []
+                                                        }
                                                         for (i = 1; i <= numberPeriods; i++) {
                                                             const startingVoteCycle = Math.floor((output.height + INTERVAL_DNA_VOTE_OFFSET) / INTERVAL_DNA_VOTE_PERIOD);
-                                                            output.voteDnaSupernodeCycles.push((startingVoteCycle + i) * INTERVAL_DNA_VOTE_PERIOD)
+                                                            vote.cycles.push((startingVoteCycle + i) * INTERVAL_DNA_VOTE_PERIOD)
                                                         }
+                                                        output.vote = vote
                                                         winston.info('new dna supernode vote', {
                                                             topic: "vote",
                                                             message: "dna supernode vote",
                                                             tx: tx.hash,
-                                                            candidate: output.voteDnaSupernodeAvatar,
+                                                            candidate: output.vote.candidate,
                                                             amount: output.attachment.quantity,
                                                             index: output.index,
-                                                            periods: output.voteDnaSupernodeCycles.join(','),
+                                                            periods: output.vote.cycles.join(','),
                                                         });
                                                     }
                                                 })
                                             }
+                                            delete tx.voteDnaSupernodeAvatar;
+                                            delete tx.voteDnaSupernodeIndex;
                                             return MongoDB.addOutputs(outputs)
                                                 .catch((e) => {
                                                     winston.error('add outputs', {
