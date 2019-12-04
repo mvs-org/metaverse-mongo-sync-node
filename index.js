@@ -132,10 +132,7 @@ function syncBlock(number) {
                                             //Check if there was a vote in this transaction
                                             if (tx.voteDnaSupernodeIndex !== undefined) {
                                                 outputs.forEach(output => {
-                                                    if (output.attachment.type === 'asset-transfer' &&
-                                                        output.attachment.symbol === 'DNA' &&
-                                                        output.attenuation_model_param !== undefined &&
-                                                        output.attenuation_model_param.lock_period >= INTERVAL_DNA_VOTE_PERIOD) {
+                                                    if (outputIsDNASupernodeVote(output)) {
                                                         let numberPeriods = Math.floor(output.attenuation_model_param.lock_period / INTERVAL_DNA_VOTE_PERIOD);
                                                         let vote = {
                                                             type: 'supernode',
@@ -549,6 +546,15 @@ function applyFork(number, forkhead) {
 
 function wait(ms) {
     return new Promise(resolve => setTimeout(() => resolve(), ms));
+}
+
+function outputIsDNASupernodeVote(output) {
+    return output.attachment.type === 'asset-transfer' &&
+        output.attachment.symbol === 'DNA' &&
+        output.attenuation_model_param !== undefined &&
+        output.attenuation_model_param.lock_period >= INTERVAL_DNA_VOTE_PERIOD &&
+        output.attenuation_model_param.total_period_nbr == 1 &&
+        output.attenuation_model_param.type == 1
 }
 
 
