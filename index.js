@@ -22,6 +22,8 @@ const PREPARE_STATS_INTERVAL = (process.env.PREPARE_STATS_INTERVAL) ? parseInt(p
 const PREPARE_STATS_THRESHOLD = (process.env.PREPARE_STATS_THRESHOLD) ? parseInt(process.env.PREPARE_STATS_THRESHOLD) : 200
 
 const INTERVAL_BLOCK_RETRY = 5000
+const INTERVAL_DNA_VOTE_PERIOD = (process.env.INTERVAL_DNA_VOTE_PERIOD) ? process.env.INTERVAL_DNA_VOTE_PERIOD : 60000
+const INTERVAL_DNA_VOTE_OFFSET = (process.env.INTERVAL_DNA_VOTE_OFFSET) ? process.env.PREPARE_STATS : 1000
 
 var avatarFromAddress = {}
 var poolFromAddress = {}
@@ -115,22 +117,60 @@ function syncBlock(number) {
                                         output.height = tx.height;
                                         output.spent_tx = 0;
                                         output.confirmed_at = tx.confirmed_at;
+                                        if (output.attachment.type === 'message' && output.attachment.content.indexOf('vote_supernode:') === 0) {
+                                            //this is a vote
+                                            if (tx.voteDnaSupernodeIndex == undefined || tx.voteDnaSupernodeIndex < output.index) {
+                                                tx.voteDnaSupernodeAvatar = output.attachment.content.match(/^vote_supernode\:([A-Za-z0-9\.]+)$/)[1];
+                                                tx.voteDnaSupernodeIndex = output.index;
+                                            }
+                                        }
                                         if (Metaverse.script.isStakeLock(output.script))
                                             output.locked_height_range = Metaverse.script.fromFullnode(output.script).getLockLength()
                                         return output;
                                     }))
-                                        .then((outputs) => MongoDB.addOutputs(outputs)
-                                            .catch((e) => {
-                                                winston.error('add outputs', {
-                                                    topic: "output",
-                                                    message: e.message,
-                                                    height: tx.height,
-                                                    hash: tx.hash,
-                                                    block: tx.block
-                                                });
-                                                console.error(e);
-                                                return;
-                                            }))
+                                        .then((outputs) => {
+                                            //Check if there was a vote in this transaction
+                                            if (tx.voteDnaSupernodeIndex !== undefined) {
+                                                outputs.forEach(output => {
+                                                    if (outputIsDNASupernodeVote(output)) {
+                                                        let numberPeriods = Math.floor(output.attenuation_model_param.lock_period / INTERVAL_DNA_VOTE_PERIOD);
+                                                        let vote = {
+                                                            type: 'supernode',
+                                                            candidate: tx.voteDnaSupernodeAvatar,
+                                                            cycles: []
+                                                        }
+                                                        for (i = 1; i <= numberPeriods; i++) {
+                                                            const startingVoteCycle = Math.floor((output.height + INTERVAL_DNA_VOTE_OFFSET) / INTERVAL_DNA_VOTE_PERIOD);
+                                                            vote.cycles.push((startingVoteCycle + i) * INTERVAL_DNA_VOTE_PERIOD)
+                                                        }
+                                                        output.vote = vote
+                                                        winston.info('new dna supernode vote', {
+                                                            topic: "vote",
+                                                            message: "dna supernode vote",
+                                                            tx: tx.hash,
+                                                            candidate: output.vote.candidate,
+                                                            amount: output.attachment.quantity,
+                                                            index: output.index,
+                                                            periods: output.vote.cycles.join(','),
+                                                        });
+                                                    }
+                                                })
+                                            }
+                                            delete tx.voteDnaSupernodeAvatar;
+                                            delete tx.voteDnaSupernodeIndex;
+                                            return MongoDB.addOutputs(outputs)
+                                                .catch((e) => {
+                                                    winston.error('add outputs', {
+                                                        topic: "output",
+                                                        message: e.message,
+                                                        height: tx.height,
+                                                        hash: tx.hash,
+                                                        block: tx.block
+                                                    });
+                                                    console.error(e);
+                                                    return;
+                                                })
+                                        })
                                         .then(() => Promise.all(tx.inputs.map((input, index) => {
                                             input.tx = tx.hash;
                                             input.index = index;
@@ -506,6 +546,15 @@ function applyFork(number, forkhead) {
 
 function wait(ms) {
     return new Promise(resolve => setTimeout(() => resolve(), ms));
+}
+
+function outputIsDNASupernodeVote(output) {
+    return output.attachment.type === 'asset-transfer' &&
+        output.attachment.symbol === 'DNA' &&
+        output.attenuation_model_param !== undefined &&
+        output.attenuation_model_param.lock_period >= INTERVAL_DNA_VOTE_PERIOD &&
+        output.attenuation_model_param.total_period_nbr == 1 &&
+        output.attenuation_model_param.type == 1
 }
 
 
