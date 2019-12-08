@@ -16,7 +16,7 @@ if (log_config.logstash.enabled) {
     });
 }
 
-const PREPARE_STATS = (process.env.PREPARE_STATS) ? process.env.PREPARE_STATS : 1
+const PREPARE_STATS = (process.env.PREPARE_STATS) ? process.env.PREPARE_STATS : 0
 const PREPARE_STATS_CHUNKSIZE = (process.env.PREPARE_STATS_CHUNKSIZE) ? parseInt(process.env.PREPARE_STATS_CHUNKSIZE) : 10000
 const PREPARE_STATS_INTERVAL = (process.env.PREPARE_STATS_INTERVAL) ? parseInt(process.env.PREPARE_STATS_INTERVAL) : 10
 const PREPARE_STATS_THRESHOLD = (process.env.PREPARE_STATS_THRESHOLD) ? parseInt(process.env.PREPARE_STATS_THRESHOLD) : 200
@@ -120,7 +120,7 @@ function syncBlock(number) {
                                         if (output.attachment.type === 'message' && output.attachment.content.indexOf('vote_supernode:') === 0) {
                                             //this is a vote
                                             if (tx.voteDnaSupernodeIndex == undefined || tx.voteDnaSupernodeIndex < output.index) {
-                                                tx.voteDnaSupernodeAvatar = output.attachment.content.match(/^vote_supernode\:([A-Za-z0-9\.]+)$/)[1];
+                                                tx.voteDnaSupernodeAvatar = output.attachment.content.match(/^vote_supernode\:([A-Za-z0-9\.]+)$/) ? output.attachment.content.match(/^vote_supernode\:([A-Za-z0-9\.]+)$/)[1] : 'Invalid Avatar';
                                                 tx.voteDnaSupernodeIndex = output.index;
                                             }
                                         }
