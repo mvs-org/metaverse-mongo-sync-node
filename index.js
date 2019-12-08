@@ -16,7 +16,7 @@ if (log_config.logstash.enabled) {
     });
 }
 
-const PREPARE_STATS = (process.env.PREPARE_STATS) ? process.env.PREPARE_STATS : 0
+const PREPARE_STATS = (process.env.PREPARE_STATS) ? process.env.PREPARE_STATS : 1
 const PREPARE_STATS_CHUNKSIZE = (process.env.PREPARE_STATS_CHUNKSIZE) ? parseInt(process.env.PREPARE_STATS_CHUNKSIZE) : 10000
 const PREPARE_STATS_INTERVAL = (process.env.PREPARE_STATS_INTERVAL) ? parseInt(process.env.PREPARE_STATS_INTERVAL) : 10
 const PREPARE_STATS_THRESHOLD = (process.env.PREPARE_STATS_THRESHOLD) ? parseInt(process.env.PREPARE_STATS_THRESHOLD) : 200
