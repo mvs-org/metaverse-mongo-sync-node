@@ -120,7 +120,7 @@ function syncBlock(number) {
                                         if (output.attachment.type === 'message' && output.attachment.content.indexOf('vote_supernode:') === 0) {
                                             //this is a vote
                                             if (tx.voteDnaSupernodeIndex == undefined || tx.voteDnaSupernodeIndex < output.index) {
-                                                tx.voteDnaSupernodeAvatar = output.attachment.content.match(/^vote_supernode\:([A-Za-z0-9\.]+)$/)[1];
+                                                tx.voteDnaSupernodeAvatar = output.attachment.content.match(/^vote_supernode\:([A-Za-z0-9-_@\.]+)$/) ? output.attachment.content.match(/^vote_supernode\:([A-Za-z0-9-_@\.]+)$/)[1] : 'Invalid Avatar';
                                                 tx.voteDnaSupernodeIndex = output.index;
                                             }
                                         }
