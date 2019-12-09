@@ -203,6 +203,10 @@ function initOutputs() {
             address: 1,
             orphaned_at: 1,
             spent_tx: 1
+        }),
+        database.collection('output').createIndex({
+            "vote.type": 1,
+            "vote.cycles": 1
         })
     ]);
 }
