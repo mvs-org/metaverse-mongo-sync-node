@@ -203,7 +203,13 @@ function initOutputs() {
             address: 1,
             orphaned_at: 1,
             spent_tx: 1
-        })
+        }),
+        database.collection('output').createIndex({
+            height: 1,
+            'vote.lockedUntil': 1,
+            'vote.type': 1,
+            'attachment.symbol': 1
+        }),
     ]);
 }
 
