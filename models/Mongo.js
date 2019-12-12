@@ -205,9 +205,11 @@ function initOutputs() {
             spent_tx: 1
         }),
         database.collection('output').createIndex({
-            "vote.type": 1,
-            "vote.cycles": 1
-        })
+            height: 1,
+            'vote.lockedUntil': 1,
+            'vote.type': 1,
+            'attachment.symbol': 1
+        }),
     ]);
 }
 
