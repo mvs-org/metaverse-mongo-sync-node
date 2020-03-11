@@ -166,10 +166,11 @@ function syncBlock(number) {
                                                     return;
                                                 })
                                         })
-                                        .then(() => Promise.all(tx.inputs.map((input, index) => {
+                                        .then(() => Promise.all(tx.inputs.map(async (input, index) => {
                                             input.tx = tx.hash;
                                             input.index = index;
                                             inputs.push(input);
+                                            //await MongoDB.markTxsAsDoubleSpendThatHasInput(input.previous_output.hash, input.previous_output.index, tx.hash)
                                             return input;
                                         })))
                                         .then(() => organizeTx(tx, true))
