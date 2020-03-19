@@ -26,6 +26,8 @@ const INTERVAL_BLOCK_RETRY = 5000
 var avatarFromAddress = {}
 var poolFromAddress = {}
 
+var initialSyncDone = false
+
 async function syncBlocksFrom(start) {
     while (true) {
         try {
@@ -40,6 +42,7 @@ async function syncBlocksFrom(start) {
                 syncedTo = await MongoDB.prepareStats(start - PREPARE_STATS_THRESHOLD, PREPARE_STATS_CHUNKSIZE);
         } catch (error) {
             if (error.message == 5101) {
+                initialSyncDone = true
                 console.info('no more block found. retry in ' + INTERVAL_BLOCK_RETRY + 'ms');
                 console.info('check mempool transactions');
                 Mvsd.getMemoryPool()
@@ -170,7 +173,9 @@ function syncBlock(number) {
                                             input.tx = tx.hash;
                                             input.index = index;
                                             inputs.push(input);
-                                            //await MongoDB.markTxsAsDoubleSpendThatHasInput(input.previous_output.hash, input.previous_output.index, tx.hash)
+                                            if (initialSyncDone) {
+                                                await MongoDB.markTxsAsDoubleSpendThatHasInput(input.previous_output.hash, input.previous_output.index, tx.hash)
+                                            }
                                             return input;
                                         })))
                                         .then(() => organizeTx(tx, true))

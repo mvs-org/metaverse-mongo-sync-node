@@ -31,6 +31,8 @@ let service = {
     markTxsAsDoubleSpendThatHasInput: markTxsAsDoubleSpendThatHasInput
 };
 
+const DOUBLE_SPENT_DEPTH_HEIGHT = 20
+
 function initPools() {
     return database.collection('pool')
         .createIndex({
@@ -248,7 +250,16 @@ function initTxs() {
         }),
         database.collection('tx').createIndex({
             height: -1
-        })
+        }),
+        database.collection('tx').createIndex({
+            hash: 1,
+            'inputs.previous_output.hash': 1,
+            'inputs.previous_output.index': 1,
+        }),
+        database.collection('tx').createIndex({
+            hash: 1,
+            'inputs.previous_output.hash': 1,
+        }),
     ]);
 }
 
@@ -737,16 +748,24 @@ function prepareStats(to_block, chunksize) {
         });
 }
 
-async function markTxsAsDoubleSpendThatHasInput(previousOutputHash, previousOutputIndex, sourceTx, level) {
-    if (level === undefined) {
-        level = 0
-    }
-    const targetTxs = await database.collection('tx').find({
+function getTransactionsForPreviousTransactionHash(sourceTx, previousOutputHash, previousOutputIndex) {
+    if (previousOutputHash === '0000000000000000000000000000000000000000000000000000000000000000')
+        return Promise.resolve([])
+    return database.collection('tx').find({
         'hash': { $ne: sourceTx },
         'inputs.previous_output.hash': previousOutputHash,
         ...(previousOutputIndex !== undefined && { 'inputs.previous_output.index': previousOutputIndex }),
-    })
-    if (targetTxs) {
+    }).toArray()
+}
+
+async function markTxsAsDoubleSpendThatHasInput(previousOutputHash, previousOutputIndex, sourceTx, level) {
+    if (level === undefined) {
+        level = 0
+    } else if (level > DOUBLE_SPENT_DEPTH_HEIGHT) {
+        console.error('maximum double spent detection depth reached')
+    }
+    const targetTxs = await getTransactionsForPreviousTransactionHash(sourceTx, previousOutputHash, previousOutputIndex)
+    if (targetTxs.length) {
         const txsUpdate = await database.collection('tx').updateMany({
             'hash': { $ne: sourceTx },
             'inputs.previous_output.hash': previousOutputHash,
@@ -757,7 +776,7 @@ async function markTxsAsDoubleSpendThatHasInput(previousOutputHash, previousOutp
             }
         })
         console.log(`marked ${txsUpdate.modifiedCount} transactions as double spent by ${sourceTx} level ${level}`)
-        for (tx of changedTxs) {
+        for (tx of targetTxs) {
             await markTxsAsDoubleSpendThatHasInput(sourceTx, undefined, tx.hash, level + 1)
         }
     }
