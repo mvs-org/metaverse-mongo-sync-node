@@ -27,16 +27,19 @@ let service = {
     getAvatar: getAvatar,
     getAllAvatars: getAllAvatars,
     getAllPools: getAllPools,
-    modifyAvatarAddress: modifyAvatarAddress
+    modifyAvatarAddress: modifyAvatarAddress,
+    markTxsAsDoubleSpendThatHasInput: markTxsAsDoubleSpendThatHasInput
 };
+
+const DOUBLE_SPENT_DEPTH_HEIGHT = 20
 
 function initPools() {
     return database.collection('pool')
         .createIndex({
             name: 1
         }, {
-                unique: true
-            })
+            unique: true
+        })
         .then(() => {
             try {
                 database.collection('pool').insertMany([{
@@ -172,8 +175,8 @@ function initBlocks() {
             hash: 1,
             block: 1
         }, {
-                unique: true
-            }),
+            unique: true
+        }),
         database.collection('block').createIndex({
             number: -1,
             orphan: 1
@@ -190,8 +193,8 @@ function initOutputs() {
             spent_tx: 1,
             spent_index: 1
         }, {
-                unique: true
-            }),
+            unique: true
+        }),
         database.collection('output').createIndex({
             "attachment.type": 1,
             orphaned_at: 1,
@@ -218,8 +221,8 @@ function initConfig() {
         database.collection('config').createIndex({
             "setting": 1
         }, {
-                unique: true
-            })
+            unique: true
+        })
     ]);
 }
 
@@ -237,8 +240,8 @@ function initTxs() {
             hash: 1,
             block: 1
         }, {
-                unique: true
-            }),
+            unique: true
+        }),
         database.collection('tx').createIndex({
             hash: 1
         }),
@@ -247,7 +250,16 @@ function initTxs() {
         }),
         database.collection('tx').createIndex({
             height: -1
-        })
+        }),
+        database.collection('tx').createIndex({
+            hash: 1,
+            'inputs.previous_output.hash': 1,
+            'inputs.previous_output.index': 1,
+        }),
+        database.collection('tx').createIndex({
+            hash: 1,
+            'inputs.previous_output.hash': 1,
+        }),
     ]);
 }
 
@@ -256,8 +268,8 @@ function initAssets() {
         database.collection('asset').createIndex({
             symbol: 1
         }, {
-                unique: true
-            })
+            unique: true
+        })
     ]);
 }
 
@@ -266,8 +278,8 @@ function initAvatars() {
         database.collection('avatar').createIndex({
             symbol: 1
         }, {
-                unique: true
-            })
+            unique: true
+        })
     ]);
 }
 
@@ -349,8 +361,8 @@ function addTx(tx) {
             }
         }]
     }, tx, {
-            upsert: true
-        });
+        upsert: true
+    });
 }
 
 function addAsset(asset) {
@@ -362,17 +374,17 @@ function secondaryIssue(asset) {
         database.collection('asset').updateMany({
             symbol: asset.symbol
         }, {
-                $inc: {
-                    quantity: asset.quantity
-                },
-                $push: {
-                    updates: asset
-                }
-            }, (err, result) => {
-                if (err) throw err.message;
-                else
-                    resolve(result.result.nModified);
-            });
+            $inc: {
+                quantity: asset.quantity
+            },
+            $push: {
+                updates: asset
+            }
+        }, (err, result) => {
+            if (err) throw err.message;
+            else
+                resolve(result.result.nModified);
+        });
     });
 }
 
@@ -385,17 +397,17 @@ function modifyAvatarAddress(avatar) {
         database.collection('avatar').updateMany({
             symbol: avatar.symbol
         }, {
-                $set: {
-                    address: avatar.address
-                },
-                $push: {
-                    updates: avatar
-                }
-            }, (err, result) => {
-                if (err) throw err.message;
-                else
-                    resolve(result.result.nModified);
-            });
+            $set: {
+                address: avatar.address
+            },
+            $push: {
+                updates: avatar
+            }
+        }, (err, result) => {
+            if (err) throw err.message;
+            else
+                resolve(result.result.nModified);
+        });
     });
 }
 
@@ -482,10 +494,10 @@ function markOrphanBlocksFrom(number, forkhead) {
         },
         orphan: 0
     }, {
-            $set: {
-                orphan: forkhead
-            }
-        })
+        $set: {
+            orphan: forkhead
+        }
+    })
         .then((result) => result.result.nModified)
         .catch(error => {
             console.error(`failed to update reorged block: ${error.message}`)
@@ -500,10 +512,10 @@ function markOrphanTxsFrom(number, forkhead) {
         },
         orphan: 0
     }, {
-            $set: {
-                orphan: forkhead
-            }
-        })
+        $set: {
+            orphan: forkhead
+        }
+    })
         .then((result) => result.result.nModified)
         .catch(error => {
             console.error(`failed to mark orphan transactions: ${error.message}`)
@@ -517,12 +529,12 @@ function markSpentOutput(spending_tx, spending_index, height, spent_tx, spent_in
         tx: spent_tx,
         index: spent_index
     }, {
-            $set: {
-                spent_tx: spending_tx,
-                spent_index: spending_index,
-                spent_height: height
-            }
-        })
+        $set: {
+            spent_tx: spending_tx,
+            spent_index: spending_index,
+            spent_height: height
+        }
+    })
         .then((result) => result.result.nModified)
 }
 
@@ -535,12 +547,12 @@ function markUnspentOutputFrom(start_height) {
             $gte: start_height
         }
     }, {
-            $set: {
-                spent_tx: 0,
-                spent_index: null,
-                spent_height: null
-            }
-        })
+        $set: {
+            spent_tx: 0,
+            spent_index: null,
+            spent_height: null
+        }
+    })
         .then((result) => result.result.nModified)
 }
 
@@ -708,18 +720,18 @@ function prepareStats(to_block, chunksize) {
                         });
                         return result;
                     }, {
-                        out: {
-                            reduce: 'address_balances'
-                        },
-                        query: {
-                            orphan: 0,
-                            height: {
-                                $gt: config.latest_block,
-                                $lte: to_block
-                            }
-                        },
-                        sort: { height: 1 }
-                    }
+                    out: {
+                        reduce: 'address_balances'
+                    },
+                    query: {
+                        orphan: 0,
+                        height: {
+                            $gt: config.latest_block,
+                            $lte: to_block
+                        }
+                    },
+                    sort: { height: 1 }
+                }
                 )
                     .then(() => {
                         config.latest_block = to_block;
@@ -727,13 +739,47 @@ function prepareStats(to_block, chunksize) {
                         return database.collection('config').update({
                             'setting': 'address_balances'
                         }, config, {
-                                upsert: true
-                            });
+                            upsert: true
+                        });
                     })
                     .then(() => to_block)
 
             }
         });
+}
+
+function getTransactionsForPreviousTransactionHash(sourceTx, previousOutputHash, previousOutputIndex) {
+    if (previousOutputHash === '0000000000000000000000000000000000000000000000000000000000000000')
+        return Promise.resolve([])
+    return database.collection('tx').find({
+        'hash': { $ne: sourceTx },
+        'inputs.previous_output.hash': previousOutputHash,
+        ...(previousOutputIndex !== undefined && { 'inputs.previous_output.index': previousOutputIndex }),
+    }).toArray()
+}
+
+async function markTxsAsDoubleSpendThatHasInput(previousOutputHash, previousOutputIndex, sourceTx, level) {
+    if (level === undefined) {
+        level = 0
+    } else if (level > DOUBLE_SPENT_DEPTH_HEIGHT) {
+        console.error('maximum double spent detection depth reached')
+    }
+    const targetTxs = await getTransactionsForPreviousTransactionHash(sourceTx, previousOutputHash, previousOutputIndex)
+    if (targetTxs.length) {
+        const txsUpdate = await database.collection('tx').updateMany({
+            'hash': { $ne: sourceTx },
+            'inputs.previous_output.hash': previousOutputHash,
+            ...(previousOutputIndex !== undefined && { 'inputs.previous_output.index': previousOutputIndex }),
+        }, {
+            $set: {
+                'double_spent': 1,
+            }
+        })
+        console.log(`marked ${txsUpdate.modifiedCount} transactions as double spent by ${sourceTx} level ${level}`)
+        for (tx of targetTxs) {
+            await markTxsAsDoubleSpendThatHasInput(sourceTx, undefined, tx.hash, level + 1)
+        }
+    }
 }
 
 module.exports = service;
