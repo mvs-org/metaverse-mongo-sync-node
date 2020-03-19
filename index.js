@@ -182,9 +182,9 @@ function syncBlock(number) {
                                             input.tx = tx.hash;
                                             input.index = index;
                                             inputs.push(input);
-                                            if (initialSyncDone) {
+                                            /*if (initialSyncDone) {
                                                 await MongoDB.markTxsAsDoubleSpendThatHasInput(input.previous_output.hash, input.previous_output.index, tx.hash)
-                                            }
+                                            }*/
                                             return input;
                                         })))
                                         .then(() => organizeTx(tx, true))
