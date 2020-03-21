@@ -252,13 +252,7 @@ function initTxs() {
             height: -1
         }),
         database.collection('tx').createIndex({
-            hash: 1,
-            'inputs.previous_output.hash': 1,
-            'inputs.previous_output.index': 1,
-        }),
-        database.collection('tx').createIndex({
-            hash: 1,
-            'inputs.previous_output.hash': 1,
+            'inputs.previous_output': 1,
         }),
     ]);
 }
@@ -748,13 +742,16 @@ function prepareStats(to_block, chunksize) {
         });
 }
 
-function getTransactionsForPreviousTransactionHash(sourceTx, previousOutputHash, previousOutputIndex) {
+function getTransactionsForPreviousTransactionHash(previousOutputHash, previousOutputIndex) {
     if (previousOutputHash === '0000000000000000000000000000000000000000000000000000000000000000')
         return Promise.resolve([])
     return database.collection('tx').find({
-        'hash': { $ne: sourceTx },
-        'inputs.previous_output.hash': previousOutputHash,
-        ...(previousOutputIndex !== undefined && { 'inputs.previous_output.index': previousOutputIndex }),
+        'inputs' : { 
+            $elemMatch: { 
+                'previous_output.hash': previousOutputHash,
+                ...(previousOutputIndex !== undefined && { 'previous_output.index': previousOutputIndex }),
+            }
+        }
     }).toArray()
 }
 
@@ -764,12 +761,14 @@ async function markTxsAsDoubleSpendThatHasInput(previousOutputHash, previousOutp
     } else if (level > DOUBLE_SPENT_DEPTH_HEIGHT) {
         console.error('maximum double spent detection depth reached')
     }
-    const targetTxs = await getTransactionsForPreviousTransactionHash(sourceTx, previousOutputHash, previousOutputIndex)
-    if (targetTxs.length) {
+    let targetTxs = await getTransactionsForPreviousTransactionHash(previousOutputHash, previousOutputIndex)
+
+    targetTxs = targetTxs.filter(tx => tx.hash != sourceTx)
+
+    if (targetTxs.length > 0) {
+        let hashes = targetTxs.map(tx => tx.hash);
         const txsUpdate = await database.collection('tx').updateMany({
-            'hash': { $ne: sourceTx },
-            'inputs.previous_output.hash': previousOutputHash,
-            ...(previousOutputIndex !== undefined && { 'inputs.previous_output.index': previousOutputIndex }),
+            'hash': { $in: hashes },
         }, {
             $set: {
                 'double_spent': 1,
