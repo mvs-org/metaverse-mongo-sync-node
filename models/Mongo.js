@@ -111,7 +111,7 @@ function initPools() {
                 {
                     name: "chileminers",
                     url: "http://etp.chileminers.cl",
-                    origin: "US",
+                    origin: 'US',
                     addresses: ['MJjMh7F2ZuNcEQvrEK2PoMwCyqX7vJrqTV', 'MKCLevqjbhyK7dMWT261uP8EaKzqkX1WUi']
                 },
                 {
@@ -153,14 +153,20 @@ function initPools() {
                 {
                     name: "madenim",
                     url: "https://www.madenim.org/",
-                    origin: "Europe",
+                    origin: 'Europe',
                     addresses: ["MScz3BTwujNXCJ89QcBGjKZ2BaJh4FrH5y"]
                 },
                 {
                     name: "f2pool",
                     url: "https://www.f2pool.com/",
-                    origin: "China",
+                    origin: 'China',
                     addresses: ["MTCZUqTpQPYmAK2GK2cyfu5jBhw8Mw3b5X"]
+                },
+                {
+                    name: "digipools",
+                    url: "https://etp.digipools.org",
+                    origin: 'US',
+                    addresses: ["MGS3uYt3k4f6CLWszHJgAE7q11XftsdRZR"]
                 },
                 ]);
             } catch (e) {
@@ -746,8 +752,8 @@ function getTransactionsForPreviousTransactionHash(previousOutputHash, previousO
     if (previousOutputHash === '0000000000000000000000000000000000000000000000000000000000000000')
         return Promise.resolve([])
     return database.collection('tx').find({
-        'inputs' : { 
-            $elemMatch: { 
+        'inputs': {
+            $elemMatch: {
                 'previous_output.hash': previousOutputHash,
                 ...(previousOutputIndex !== undefined && { 'previous_output.index': previousOutputIndex }),
             }
