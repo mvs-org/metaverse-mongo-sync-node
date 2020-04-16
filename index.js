@@ -123,11 +123,11 @@ function syncBlock(number) {
                                         output.height = tx.height;
                                         output.spent_tx = 0;
                                         output.confirmed_at = tx.confirmed_at;
-                                        if (output.attachment.type === 'message' && /^vote_([a-z0-9]+)\:([A-Za-z0-9-_@\.]+)$/.test(output.attachment.content)) {
+                                        if (output.attachment.type === 'message' && /^vote_([a-z0-9]+)\:([A-Za-z0-9-_@\. ]+)$/.test(output.attachment.content)) {
                                             //this is a vote
                                             if (tx.voteIndex == undefined || tx.voteIndex < output.index) {
                                                 tx.voteType = /^vote_([a-z0-9]+)\:/.test(output.attachment.content) ? output.attachment.content.match(/^vote_([a-z0-9]+)\:/)[1] : 'Invalid Type';
-                                                tx.voteAvatar = /\:([A-Za-z0-9-_@\.]+)$/.test(output.attachment.content) ? output.attachment.content.match(/\:([A-Za-z0-9-_@\.]+)$/)[1] : 'Invalid Avatar';
+                                                tx.voteAvatar = /\:([A-Za-z0-9-_@\. ]+)$/.test(output.attachment.content) ? output.attachment.content.match(/\:([A-Za-z0-9-_@\. ]+)$/)[1] : 'Invalid Avatar';
                                                 tx.voteIndex = output.index;
                                             }
                                         }
