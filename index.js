@@ -245,16 +245,6 @@ function syncBlock(number) {
                             }
                         }));
         })
-        .catch((e) => {
-            Messenger.send('Block error type', `Cannot get block in height ${number}`);
-            winston.error('block error', {
-                topic: "block",
-                message: e.message,
-                height: number
-            });
-            console.error(e);
-            return;
-        })
 }
 
 function organizeTxOutputs(tx, outputs, add_entities) {
