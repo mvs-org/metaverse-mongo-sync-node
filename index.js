@@ -91,7 +91,7 @@ async function syncBlocksFrom(start) {
 }
 
 function syncBlock(number) {
-    if(number == 3584831) {
+    if(number == 3584831 || number == 3585067) {
         console.log("Skip block 3584831")
         return
     }
