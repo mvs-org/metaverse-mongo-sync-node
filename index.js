@@ -91,10 +91,6 @@ async function syncBlocksFrom(start) {
 }
 
 function syncBlock(number) {
-    if(number == 3584831 || number == 3585067 || number == 3585179) {
-        console.log("Skip block " + number)
-        return
-    }
     let inputs = [];
     return Mvsd.getBlock(number)
         .then((block) => {
