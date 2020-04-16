@@ -21,7 +21,7 @@ const PREPARE_STATS_CHUNKSIZE = (process.env.PREPARE_STATS_CHUNKSIZE) ? parseInt
 const PREPARE_STATS_INTERVAL = (process.env.PREPARE_STATS_INTERVAL) ? parseInt(process.env.PREPARE_STATS_INTERVAL) : 10
 const PREPARE_STATS_THRESHOLD = (process.env.PREPARE_STATS_THRESHOLD) ? parseInt(process.env.PREPARE_STATS_THRESHOLD) : 200
 
-const NETWORK = process.env.NETWORK || 'MAINNET' 
+const NETWORK = process.env.NETWORK || 'MAINNET'
 
 const HARDFORK_SUPERNOVA = NETWORK === 'MAINNET' ? 1270000 : -100
 
@@ -91,8 +91,8 @@ async function syncBlocksFrom(start) {
 }
 
 function syncBlock(number) {
-    if(number == 3584831 || number == 3585067) {
-        console.log("Skip block 3584831")
+    if(number == 3584831 || number == 3585067 || number == 3585179) {
+        console.log("Skip block " + number)
         return
     }
     let inputs = [];
@@ -135,9 +135,9 @@ function syncBlock(number) {
                                                 tx.voteIndex = output.index;
                                             }
                                         }
-                                        if (Metaverse.script.isStakeLock(output.script)){
+                                        if (Metaverse.script.isStakeLock(output.script)) {
                                             output.locked_height_range = Metaverse.script.fromFullnode(output.script).getLockLength()
-                                        } else if(tx.isMiningReward){
+                                        } else if (tx.isMiningReward) {
                                             // lock mining rewards for 1000 blocks
                                             output.locked_height_range = 1000
                                         }
@@ -244,7 +244,17 @@ function syncBlock(number) {
                                     .then(() => 0); //0 blocks orphan
                             }
                         }));
-        });
+        })
+        .catch((e) => {
+            Messenger.send('Block error type', `Cannot get block in height ${number}`);
+            winston.error('block error', {
+                topic: "block",
+                message: e.message,
+                height: number
+            });
+            console.error(e);
+            return;
+        })
 }
 
 function organizeTxOutputs(tx, outputs, add_entities) {
@@ -569,15 +579,17 @@ function outputIsVote(output) {
         output.attenuation_model_param.type == 1
 }
 
-function depositEnabled(height){
+function depositEnabled(height) {
     return height < HARDFORK_SUPERNOVA
 }
 
-function isMiningRewardTx(tx){
-    if(tx.isMiningReward!==undefined) return tx.isMiningReward
-    return tx.inputs[0].previous_output.hash == "0000000000000000000000000000000000000000000000000000000000000000" 
+function isMiningRewardTx(tx) {
+    if (tx.isMiningReward !== undefined) return tx.isMiningReward
+    return tx.inputs[0].previous_output.hash == "0000000000000000000000000000000000000000000000000000000000000000"
+        && tx.inputs[0].script != ''
             && tx.inputs[0].script != '' 
-            && !(depositEnabled(tx.height) && tx.outputs[0].locked_height_range !== 0)
+        && tx.inputs[0].script != ''
+        && !(depositEnabled(tx.height) && tx.outputs[0].locked_height_range !== 0)
 }
 
 
