@@ -284,7 +284,7 @@ function initAvatars() {
 }
 
 function init() {
-    return connect('mongodb://' + config.host + ':' + config.port, config.database)
+    return connect(config.url || 'mongodb://' + config.host + ':' + config.port, config.database)
         .then(() => initPools())
         .then(() => initBlocks())
         .then(() => initConfig())
