@@ -185,8 +185,8 @@ function initBlocks() {
         }),
         database.collection('block').createIndex({
             number: -1,
-            orphan: 1
-        })
+            orphan: 1,
+        }),
     ]);
 }
 
@@ -199,7 +199,7 @@ function initOutputs() {
             spent_tx: 1,
             spent_index: 1
         }, {
-            unique: true
+            unique: true,
         }),
         database.collection('output').createIndex({
             "attachment.type": 1,
@@ -284,7 +284,8 @@ function initAvatars() {
 }
 
 function init() {
-    return connect('mongodb://' + config.host + ':' + config.port, config.database)
+    console.log({config})
+    return connect(config.url || 'mongodb://' + config.host + ':' + config.port, config.database)
         .then(() => initPools())
         .then(() => initBlocks())
         .then(() => initConfig())
