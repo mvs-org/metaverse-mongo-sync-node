@@ -219,6 +219,14 @@ function initOutputs() {
             'vote.type': 1,
             'attachment.symbol': 1
         }),
+        database.collection('output').createIndex({
+            address: 1,
+            orphaned_at: 1,
+            'attachment.symbol': 1,
+            'attachment.quantity': 1,
+            attenuation_model_param: 1,
+            height: 1
+        }),
     ]);
 }
 
